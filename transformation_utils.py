@@ -2,24 +2,43 @@
 
 import matplotlib.pyplot as plt
 import numpy.typing as npt
-from numpy import absolute, delete, fft, mean, ndarray
+from numpy import absolute, array, delete, fft, ndarray
 
 
-def to_dft(seq: npt.ArrayLike)-> ndarray:
-    n:int =len(seq)
+def to_dft(seq: npt.ArrayLike, freq_size: int)-> ndarray:
+ 
 
-    plt.subplot(211)
-    plt.plot(range(n),seq)
-
-    discrete_transform = fft.rfft(seq)
+    discrete_transform = fft.fft(a=seq, n=freq_size)
     discrete_transform = delete(discrete_transform, 0)
-    dtf_abs = absolute(discrete_transform)
 
-    mean_value = mean(dtf_abs)
-    sn_amp = [amp/mean_value for amp in dtf_abs]
-    freq = fft.rfftfreq(seq.shape[-1]-2)
+    # freq = fft.rfftfreq(seq.shape[-1]-2)
 
-    plt.subplot(212)
-    plt.plot(freq,sn_amp)
-    plt.show()
+    # plt.subplot(212)
+    # plt.plot(freq,absolute(discrete_transform))
+    # plt.show()
     return discrete_transform
+
+def cross_spectrum(seq_x: npt.ArrayLike, 
+                   seq_y:npt.ArrayLike, 
+                   freq:npt.ArrayLike,
+                   size:int):
+    spectrum = []
+    n = range(size)
+    for i in n:
+        spectrum.append(seq_x[i].real*seq_y[i].imag)
+
+    spectrum = array(spectrum)
+    spectrum = absolute(spectrum)
+
+    plt.subplot(311)
+    plt.plot(freq, fft.fftshift(absolute(seq_x))) 
+
+
+    plt.subplot(312)
+    plt.plot(freq,  fft.fftshift(absolute(seq_y)))
+
+    plt.subplot(313)
+    plt.plot(freq, fft.fftshift(spectrum))
+    plt.show()
+
+    return spectrum
