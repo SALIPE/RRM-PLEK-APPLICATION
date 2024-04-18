@@ -1,47 +1,32 @@
 from typing import List
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from Bio import SeqIO
+from Bio import Seq, SeqIO
+from scipy.fft import rfftfreq
 
-from io_utils import buffer_sequences, to_numeric_char_value
-from transformation_utils import cross_spectrum, to_dft
+import io_utils as iou
+import transformation_utils as tfu
 
-folders = ["Bos Tauros",
-           "Danio rerio",
-           "Gorilla gorilla"]
 
-        
 def main():
     path_loc = "..\dataset-plek\Gorilla_gorilla\sequencia2.txt"
-    sequence = buffer_sequences(sequence_path=path_loc)
+    sequence = iou.buffer_sequences(sequence_path=path_loc)
 
     first_key = list(sequence.keys())
-
     firts_sequence = sequence[first_key[0]]
-    second_sequence = sequence[first_key[1]]
+    firts_sequence.seq = Seq.transcribe(firts_sequence.seq)
 
-    sequence_1 = to_numeric_char_value([firts_sequence.seq])
-    sequence_1 = np.array(sequence_1[0], dtype=float)
+    amn_values = iou.to_aminoacid_char_value([firts_sequence.seq])[0]
 
-    seq_size = len(sequence_1)
+    freq  = rfftfreq(len(amn_values))
+    dft = tfu.to_dft(seq=amn_values)
 
-    sequence_2 = to_numeric_char_value([second_sequence.seq])
-    sequence_2 = np.array(sequence_2[0], dtype=float)
-    sequence_2 = sequence_2[0:seq_size]
-
-    
-  
-    dtf1 = to_dft(sequence_1,seq_size)
-    dtf2 = to_dft(sequence_2,seq_size)
-
-    seq_size = seq_size-1
-    freq = np.fft.fftfreq(seq_size)
-    freq = np.fft.fftshift(freq)
-
-    cross_spectrum(dtf1,dtf2,freq,seq_size)
-
-
+    plt.plot(freq[1:], np.abs(dft)[1:])
+    plt.show()
+   
+   
 
 if __name__ == "__main__":
     main()

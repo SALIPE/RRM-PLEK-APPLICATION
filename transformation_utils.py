@@ -1,26 +1,18 @@
 
 
 import matplotlib.pyplot as plt
+import numpy as np
 import numpy.typing as npt
-from numpy import absolute, array, delete, fft, ndarray
+from numpy import absolute, array
+from scipy.fft import rfft
 
 
-def to_dft(seq: npt.ArrayLike, freq_size: int)-> ndarray:
- 
-
-    discrete_transform = fft.fft(a=seq, n=freq_size)
-    discrete_transform = delete(discrete_transform, 0)
-
-    # freq = fft.rfftfreq(seq.shape[-1]-2)
-
-    # plt.subplot(212)
-    # plt.plot(freq,absolute(discrete_transform))
-    # plt.show()
-    return discrete_transform
+def to_dft(seq: npt.ArrayLike)-> tuple:
+    data = rfft(x=seq,norm="ortho")
+    return data*1000
 
 def cross_spectrum(seq_x: npt.ArrayLike, 
-                   seq_y:npt.ArrayLike, 
-                   freq:npt.ArrayLike,
+                   seq_y:npt.ArrayLike,
                    size:int):
     spectrum = []
     n = range(size)
@@ -29,16 +21,5 @@ def cross_spectrum(seq_x: npt.ArrayLike,
 
     spectrum = array(spectrum)
     spectrum = absolute(spectrum)
-
-    plt.subplot(311)
-    plt.plot(freq, fft.fftshift(absolute(seq_x))) 
-
-
-    plt.subplot(312)
-    plt.plot(freq,  fft.fftshift(absolute(seq_y)))
-
-    plt.subplot(313)
-    plt.plot(freq, fft.fftshift(spectrum))
-    plt.show()
 
     return spectrum
