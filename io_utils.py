@@ -31,6 +31,7 @@ EIIP_AMINOACID: Dict[str,float] = {
     'F': 0.0946,
     'R': 0.0959,
     'D': 0.1263,
+    'X': 0.0000,
     '*': 0.0000
 }
 AMINOACID_MAP: Dict[str,List[str]]={
@@ -54,7 +55,26 @@ AMINOACID_MAP: Dict[str,List[str]]={
     'F': ['UUU', 'UUC'],
     'R': ['CGU', 'CGC','CGA','CGG','AGA','AGG'],
     'D': ['GAU', 'GAC'],
-    '*': ['UGA','UAA','UAG','A','C','U','G',
+    '*': ['UGA','UAA','UAG',
+          'NNN','NN','N',
+          'ANN','NNA','AAN','ANA','NAA',
+          'UNN','NNU','UUN','UNU','NUU',
+          'CNN','NNC','CCN','CNC','NCC',
+          'UNN','NNU','UUN','UNU','NUU',
+          'GNN','NNG','GGN','GNG','NGG',
+          'NCA','NCG','NCU',
+          'NGA','NGC','NGU',
+          'NAC','NAG','NAU',
+          'NUC','NUG','NUA',
+          'ANG','ANC','ANU',
+          'UNG','UNC','UNA',
+          'GNU','GNC','GNA',
+          'CNU','CNG','CNA',
+          'CUN','CGN','CAN',
+          'GUN','GCN','GAN',
+          'AUN','ACN','AGN',
+          'UGN','UCN','UAN',
+          'A','C','U','G',
           'AA','AC','AG','AU',
           'CA','CU','CG','CC',
           'UA','UU','UC','UG',
@@ -95,12 +115,18 @@ def find_sequences(seq_path: str) -> npt.ArrayLike:
 def nucleotide_map(seq:str)-> npt.ArrayLike:
     return [EIIP_NUCLEOTIDE[char] for char in seq]
 
-def aminoacid_map(seq:str)-> npt.ArrayLike:
+def aminoacid_map(seq:str)-> List[float]:
     amin_char = [AMINOACIDS[seq[i:i+3]] for i in range(0, len(seq), 3)]
     return  [EIIP_AMINOACID[char] for char in amin_char]
+
+def rna_aminoacid_map(seq:str)-> List[float]:
+    return  [EIIP_AMINOACID[char] for char in seq]
      
 def to_nucleotide_char_value(seq_list: npt.ArrayLike)-> npt.ArrayLike:
      return [nucleotide_map(seq) for seq in seq_list]
 
-def to_aminoacid_char_value(seq_list: npt.ArrayLike)-> npt.ArrayLike:
+def to_aminoacid_char_value(seq_list: npt.ArrayLike)-> List[List[float]]:
      return [aminoacid_map(seq) for seq in seq_list]
+
+def rna_to_aminoacid_char_value(seq_list: npt.ArrayLike)-> List[List[float]]:
+     return [rna_aminoacid_map(seq) for seq in seq_list]

@@ -1,24 +1,22 @@
-from scipy.fft import rfft, rfftfreq
-import numpy as np
-
-from Bio import SeqIO, SeqRecord
-from Bio.Seq import Seq
-
-import matplotlib.pyplot as plt
-
+import bisect
 import os
 from fnmatch import fnmatch
+from typing import Dict
 
-import bisect
+import matplotlib.pyplot as plt
+import numpy as np
+from Bio import SeqIO, SeqRecord
+from Bio.Seq import Seq
+from scipy.fft import rfft, rfftfreq
 
 ## Funcoes para obtencao do EIIP
-EIIP_NUCLEOTIDE: dict[str, float] = {
+EIIP_NUCLEOTIDE: Dict[str, float] = {
     'A': 0.1260,
     'G': 0.0806,
     'T': 0.1335,
     'C': 0.1340}
 
-EIIP_AMINOACID: dict[str,float] = {
+EIIP_AMINOACID: Dict[str,float] = {
     'L': 0.0000,
     'I': 0.0000,
     'N': 0.0036,
@@ -81,89 +79,190 @@ def element_wise_product(data):
 
     return res
 
-# parametros
-dir_path = r'/home/matheus/Dropbox/08_packages/07_BASiNET_v2/data/100_seq'
-step = 1
-hist_bins = 100
-# max_freq = 0.5 # aminoacids
-max_freq = 0.56 # nucleotideo
+def test():
+    # parametros
+    dir_path = r'/home/matheus/Dropbox/08_packages/07_BASiNET_v2/data/100_seq'
+    step = 1
+    hist_bins = 100
+    # max_freq = 0.5 # aminoacids
+    max_freq = 0.56 # nucleotideo
 
 
-## load seqs
-file_list = [name for name in os.listdir(dir_path) if fnmatch(name, "*.fasta")]
-files = [dir_path + "/" + file_name for file_name in file_list]
+    ## load seqs
+    file_list = [name for name in os.listdir(dir_path) if fnmatch(name, "*.fasta")]
+    files = [dir_path + "/" + file_name for file_name in file_list]
 
 
-for file_in in files:
+    for file_in in files:
+        coeff_FFT = []
+        coeff_FFT_zip = []
+        coeff_FFT_mean_len = []
+        intervals = np.linspace(0, max_freq, hist_bins)
+        hist = [[] for _ in range(hist_bins)]
+        histogram = []
+        file_name = file_in.split('/')[-1].split('.')[0]
+        ## traduzindo as sequencias
+        # with open(file_in, encoding="utf-8") as handle:
+        #     seqs = [translate(str(record.seq).upper()) for record in SeqIO.parse(handle, "fasta")]
+        # translate_seq = True
+        ##
+        ### se nao for traduzir as sequencias
+        with open(file_in, encoding="utf-8") as handle:
+            seqs = [str(record.seq).upper() for record in SeqIO.parse(handle, "fasta")]
+        translate_seq=False    
+        
+        
+        max_val = len(max(seqs,key=len))
+        min_val = len(min(seqs,key=len))
+        mean_value = np.mean([len(i) for i in seqs])
+        std_value = np.std([len(i) for i in seqs])
+        mean_len = int(mean_value + std_value)
+        ### padding valores ate o tamanho maximo das sequencias
+        for seq in seqs:
+            eiip_seqs = get_eiip(seq, step, translate_seq=translate_seq)
+            fft_eiip = rfft(eiip_seqs, n=max_val)
+            coeff_FFT.append(np.abs(fft_eiip))
+            
+            ### produto direto
+            fft_eiip_zip = rfft(eiip_seqs)
+            coeff_FFT_zip.append(np.abs(fft_eiip_zip)[1:])
+            
+            ### histograma
+            freq_hist = rfftfreq(len(eiip_seqs), d=1)
+            fft_freq = [(fft,freqs) for fft, freqs in zip(fft_eiip_zip,freq_hist)]
+            
+            #### mean_len
+            fft_eiip_mean_len = rfft(eiip_seqs, n=mean_len)
+            coeff_FFT_mean_len.append(np.abs(fft_eiip_mean_len))
+            
+            for val in fft_freq:
+                hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
+            
+            # Plot mesmo valor
+            # plt.plot(rfftfreq(max_val, d=1)[1:],np.abs(fft_eiip)[1:])
+            # plot_name = f'{file_name}\nMesmo tamanho (padding zero)'
+            
+            # Plot cada sequencia com seu tamanho original
+            plt.plot(freq_hist[1:],np.abs(fft_eiip_zip)[1:])
+            plot_name = f'{file_name}\nTamanho original'
+            
+        plt.title(plot_name)
+        plt.show()
+        ### produto direto
+        cross_spectral_zip = element_wise_product(coeff_FFT_zip)
+        
+        ### padding valores ate o taamnho maximo das sequencias
+        freq = rfftfreq(max_val, d=1)
+        cross_spectral = np.prod(coeff_FFT, axis=0)
+        
+        ### mean len
+        freq_mean_len = rfftfreq(mean_len, d=1)
+        cross_spectral_mean_len = np.prod(coeff_FFT_mean_len, axis=0)
+        
+        ### histogram
+        for lst in hist:
+            histogram.append(np.prod(lst))
+        
+        plt.plot(freq[1:],cross_spectral[1:])
+        plt.title(f'{file_name}\nMesmo tamanho\nTamanho da serie {freq.size}')
+        plt.show()
+
+        ### produto direto
+        freq_zip = rfftfreq(min_val,d=1)
+        plt.plot(freq_zip[1:],cross_spectral_zip)
+        plt.title(f'{file_name}\nProduto direto entre coeficientes\nTamanho da serie {freq_zip.size}')
+        plt.show()
+
+        ### histogram
+        plt.plot(intervals[1:],histogram[1:])
+        plt.title(f'{file_name}\nHistograma\nNumero de Bins (0-{max_freq}): {intervals.size}')
+        plt.show()
+        
+        ### mean len
+        plt.plot(freq_mean_len[1:],cross_spectral_mean_len[1:])
+        plt.title(f'{file_name}\nTamanho: média + desvio padrão\nTamanho da serie {freq.size}')
+        plt.show()
+ 
+
+def toy_model1():   
+    #########
+    #### TOY MODEL
+    ##########
+    step = 1
+    hist_bins = 100
+    max_freq = 0.5 # aminoacids
+
     coeff_FFT = []
     coeff_FFT_zip = []
     coeff_FFT_mean_len = []
     intervals = np.linspace(0, max_freq, hist_bins)
     hist = [[] for _ in range(hist_bins)]
     histogram = []
-    file_name = file_in.split('/')[-1].split('.')[0]
-    ## traduzindo as sequencias
-    # with open(file_in, encoding="utf-8") as handle:
-    #     seqs = [translate(str(record.seq).upper()) for record in SeqIO.parse(handle, "fasta")]
-    # translate_seq = True
-    ##
-    ### se nao for traduzir as sequencias
-    with open(file_in, encoding="utf-8") as handle:
-        seqs = [str(record.seq).upper() for record in SeqIO.parse(handle, "fasta")]
-    translate_seq=False    
-    
-    
+    file_name = 'TOY MODEL - COSIC ARTIGO'
+
+    seq1 = 'PALPEDGGSGAFPPGHFKDPKRLYCKNGGFFLRIHPDGRVDGVREKSDPHIKLQLQAEERGWSIKGVCANRYLAMKEDGRLLASKCVTDECFFFERLESNNYNTYRSRKYSSWYVALKRTGQYKLGPKTGPGQKAILFLPMSAKS'
+    seq2 = 'FNLPLGNYKKPKLLYCSNGGYFLRILPDGTVDGTKDRSDQHIQLQLCAESIGEVYIKSTETGQFLAMDTDGLLYGSQTPNEECLFLERLEENHYNTYISKKHAEKHWFVGLKKNGRSKLGPRTHFGQKAILFLPLPVSSD'
+
+    seqs = [seq1, seq2]
     max_val = len(max(seqs,key=len))
     min_val = len(min(seqs,key=len))
     mean_value = np.mean([len(i) for i in seqs])
     std_value = np.std([len(i) for i in seqs])
     mean_len = int(mean_value + std_value)
-    ### padding valores ate o tamanho maximo das sequencias
-    for seq in seqs:
-        eiip_seqs = get_eiip(seq, step, translate_seq=translate_seq)
-        fft_eiip = rfft(eiip_seqs, n=max_val)
-        coeff_FFT.append(np.abs(fft_eiip))
+
+    eiip_seq1 = get_eiip(seq1, step, True)
+    eiip_seq2 = get_eiip(seq2, step, True)
+
+    coeff_FFT.append(np.abs(rfft(eiip_seq1, n=max_val)))
+    coeff_FFT.append(np.abs(rfft(eiip_seq2, n=max_val)))
+
+    coeff_FFT_zip.append(np.abs(rfft(eiip_seq1))[1:])
+
+    freq_hist = rfftfreq(len(eiip_seq1), d=1)
+    fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq1),freq_hist)]
+    for val in fft_freq:
+        hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
+
+    plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq1))[1:])
+
+
+    coeff_FFT_zip.append(np.abs(rfft(eiip_seq2))[1:])
+
+    freq_hist = rfftfreq(len(eiip_seq2), d=1)
+    fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq2),freq_hist)]
+    for val in fft_freq:
+        hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
+
         
-        ### produto direto
-        fft_eiip_zip = rfft(eiip_seqs)
-        coeff_FFT_zip.append(np.abs(fft_eiip_zip)[1:])
-        
-        ### histograma
-        freq_hist = rfftfreq(len(eiip_seqs), d=1)
-        fft_freq = [(fft,freqs) for fft, freqs in zip(fft_eiip_zip,freq_hist)]
-        
-        #### mean_len
-        fft_eiip_mean_len = rfft(eiip_seqs, n=mean_len)
-        coeff_FFT_mean_len.append(np.abs(fft_eiip_mean_len))
-        
-        for val in fft_freq:
-            hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
-        
-        # Plot mesmo valor
-        # plt.plot(rfftfreq(max_val, d=1)[1:],np.abs(fft_eiip)[1:])
-        # plot_name = f'{file_name}\nMesmo tamanho (padding zero)'
-        
-        # Plot cada sequencia com seu tamanho original
-        plt.plot(freq_hist[1:],np.abs(fft_eiip_zip)[1:])
-        plot_name = f'{file_name}\nTamanho original'
-        
-    plt.title(plot_name)
+    plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq2))[1:])
+    plot_name = f'ToyModel\nTamanho original'
+
     plt.show()
-    ### produto direto
+
+    coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq1, n=mean_len)))
+    coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq2, n=mean_len)))
+
     cross_spectral_zip = element_wise_product(coeff_FFT_zip)
-    
-    ### padding valores ate o taamnho maximo das sequencias
+
     freq = rfftfreq(max_val, d=1)
     cross_spectral = np.prod(coeff_FFT, axis=0)
-    
-    ### mean len
+
     freq_mean_len = rfftfreq(mean_len, d=1)
     cross_spectral_mean_len = np.prod(coeff_FFT_mean_len, axis=0)
-    
+
     ### histogram
     for lst in hist:
         histogram.append(np.prod(lst))
-    
+
+    plt.plot(eiip_seq1)
+    plt.title(f'{file_name}\nEIIP seq1')
+    plt.show()
+
+    plt.plot(eiip_seq2)
+    plt.title(f'{file_name}\nEIIP seq2')
+    plt.show()
+
+
     plt.plot(freq[1:],cross_spectral[1:])
     plt.title(f'{file_name}\nMesmo tamanho\nTamanho da serie {freq.size}')
     plt.show()
@@ -176,204 +275,109 @@ for file_in in files:
 
     ### histogram
     plt.plot(intervals[1:],histogram[1:])
-    plt.title(f'{file_name}\nHistograma\nNumero de Bins (0-{max_freq}): {intervals.size}')
+    plt.title(f'{file_name}\nHistograma\nNumero de Bins (0-0.5): {intervals.size}')
     plt.show()
-    
+
     ### mean len
     plt.plot(freq_mean_len[1:],cross_spectral_mean_len[1:])
     plt.title(f'{file_name}\nTamanho: média + desvio padrão\nTamanho da serie {freq.size}')
     plt.show()
- 
-    
-#########
-#### TOY MODEL
-##########
-step = 1
-hist_bins = 100
-max_freq = 0.5 # aminoacids
-
-coeff_FFT = []
-coeff_FFT_zip = []
-coeff_FFT_mean_len = []
-intervals = np.linspace(0, max_freq, hist_bins)
-hist = [[] for _ in range(hist_bins)]
-histogram = []
-file_name = 'TOY MODEL - COSIC ARTIGO'
-
-seq1 = 'PALPEDGGSGAFPPGHFKDPKRLYCKNGGFFLRIHPDGRVDGVREKSDPHIKLQLQAEERGWSIKGVCANRYLAMKEDGRLLASKCVTDECFFFERLESNNYNTYRSRKYSSWYVALKRTGQYKLGPKTGPGQKAILFLPMSAKS'
-seq2 = 'FNLPLGNYKKPKLLYCSNGGYFLRILPDGTVDGTKDRSDQHIQLQLCAESIGEVYIKSTETGQFLAMDTDGLLYGSQTPNEECLFLERLEENHYNTYISKKHAEKHWFVGLKKNGRSKLGPRTHFGQKAILFLPLPVSSD'
-
-seqs = [seq1, seq2]
-max_val = len(max(seqs,key=len))
-min_val = len(min(seqs,key=len))
-mean_value = np.mean([len(i) for i in seqs])
-std_value = np.std([len(i) for i in seqs])
-mean_len = int(mean_value + std_value)
-
-eiip_seq1 = get_eiip(seq1, step, True)
-eiip_seq2 = get_eiip(seq2, step, True)
-
-coeff_FFT.append(np.abs(rfft(eiip_seq1, n=max_val)))
-coeff_FFT.append(np.abs(rfft(eiip_seq2, n=max_val)))
-
-coeff_FFT_zip.append(np.abs(rfft(eiip_seq1))[1:])
-
-freq_hist = rfftfreq(len(eiip_seq1), d=1)
-fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq1),freq_hist)]
-for val in fft_freq:
-    hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
-
-plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq1))[1:])
 
 
-coeff_FFT_zip.append(np.abs(rfft(eiip_seq2))[1:])
+def toy_model2():
+    ##### model 2
 
-freq_hist = rfftfreq(len(eiip_seq2), d=1)
-fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq2),freq_hist)]
-for val in fft_freq:
-    hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
+    step = 1
+    hist_bins = 100
+    max_freq = 0.5 # aminoacids
 
-    
-plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq2))[1:])
-plot_name = f'ToyModel\nTamanho original'
+    coeff_FFT = []
+    coeff_FFT_zip = []
+    coeff_FFT_mean_len = []
+    intervals = np.linspace(0, max_freq, hist_bins)
+    hist = [[] for _ in range(hist_bins)]
+    histogram = []
+    file_name = 'TOY MODEL - COSIC LIVRO'
 
-plt.show()
+    seq1 = 'VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR'
+    seq2 = 'VHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH'
 
-coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq1, n=mean_len)))
-coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq2, n=mean_len)))
+    seqs = [seq1, seq2]
+    max_val = len(max(seqs,key=len))
+    min_val = len(min(seqs,key=len))
+    mean_value = np.mean([len(i) for i in seqs])
+    std_value = np.std([len(i) for i in seqs])
+    mean_len = int(mean_value + std_value)
 
-cross_spectral_zip = element_wise_product(coeff_FFT_zip)
+    eiip_seq1 = get_eiip(seq1, step, True)
+    eiip_seq2 = get_eiip(seq2, step, True)
 
-freq = rfftfreq(max_val, d=1)
-cross_spectral = np.prod(coeff_FFT, axis=0)
+    coeff_FFT.append(np.abs(rfft(eiip_seq1, n=max_val)))
+    coeff_FFT.append(np.abs(rfft(eiip_seq2, n=max_val)))
 
-freq_mean_len = rfftfreq(mean_len, d=1)
-cross_spectral_mean_len = np.prod(coeff_FFT_mean_len, axis=0)
+    coeff_FFT_zip.append(np.abs(rfft(eiip_seq1))[1:])
 
-### histogram
-for lst in hist:
-    histogram.append(np.prod(lst))
+    freq_hist = rfftfreq(len(eiip_seq1), d=1)
+    fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq1),freq_hist)]
+    for val in fft_freq:
+        hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
 
-plt.plot(eiip_seq1)
-plt.title(f'{file_name}\nEIIP seq1')
-plt.show()
+    plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq1))[1:])
 
-plt.plot(eiip_seq2)
-plt.title(f'{file_name}\nEIIP seq2')
-plt.show()
+    coeff_FFT_zip.append(np.abs(rfft(eiip_seq2))[1:])
 
+    freq_hist = rfftfreq(len(eiip_seq2), d=1)
+    fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq2),freq_hist)]
+    for val in fft_freq:
+        hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
+        
+    plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq2))[1:])
+    plot_name = f'ToyModel\nTamanho original'
+    plt.show()
 
-plt.plot(freq[1:],cross_spectral[1:])
-plt.title(f'{file_name}\nMesmo tamanho\nTamanho da serie {freq.size}')
-plt.show()
+    coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq1, n=mean_len)))
+    coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq2, n=mean_len)))
 
-### produto direto
-freq_zip = rfftfreq(min_val,d=1)
-plt.plot(freq_zip[1:],cross_spectral_zip)
-plt.title(f'{file_name}\nProduto direto entre coeficientes\nTamanho da serie {freq_zip.size}')
-plt.show()
+    cross_spectral_zip = element_wise_product(coeff_FFT_zip)
 
-### histogram
-plt.plot(intervals[1:],histogram[1:])
-plt.title(f'{file_name}\nHistograma\nNumero de Bins (0-0.5): {intervals.size}')
-plt.show()
+    freq = rfftfreq(max_val, d=1)
+    cross_spectral = np.prod(coeff_FFT, axis=0)
 
-### mean len
-plt.plot(freq_mean_len[1:],cross_spectral_mean_len[1:])
-plt.title(f'{file_name}\nTamanho: média + desvio padrão\nTamanho da serie {freq.size}')
-plt.show()
+    freq_mean_len = rfftfreq(mean_len, d=1)
+    cross_spectral_mean_len = np.prod(coeff_FFT_mean_len, axis=0)
 
+    ### histogram
+    for lst in hist:
+        histogram.append(np.prod(lst))
 
-##### model 2
+    plt.plot(eiip_seq1)
+    plt.title(f'{file_name}\nEIIP seq1')
+    plt.show()
 
-step = 1
-hist_bins = 100
-max_freq = 0.5 # aminoacids
-
-coeff_FFT = []
-coeff_FFT_zip = []
-coeff_FFT_mean_len = []
-intervals = np.linspace(0, max_freq, hist_bins)
-hist = [[] for _ in range(hist_bins)]
-histogram = []
-file_name = 'TOY MODEL - COSIC LIVRO'
-
-seq1 = 'VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR'
-seq2 = 'VHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH'
-
-seqs = [seq1, seq2]
-max_val = len(max(seqs,key=len))
-min_val = len(min(seqs,key=len))
-mean_value = np.mean([len(i) for i in seqs])
-std_value = np.std([len(i) for i in seqs])
-mean_len = int(mean_value + std_value)
-
-eiip_seq1 = get_eiip(seq1, step, True)
-eiip_seq2 = get_eiip(seq2, step, True)
-
-coeff_FFT.append(np.abs(rfft(eiip_seq1, n=max_val)))
-coeff_FFT.append(np.abs(rfft(eiip_seq2, n=max_val)))
-
-coeff_FFT_zip.append(np.abs(rfft(eiip_seq1))[1:])
-
-freq_hist = rfftfreq(len(eiip_seq1), d=1)
-fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq1),freq_hist)]
-for val in fft_freq:
-    hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
-
-plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq1))[1:])
-
-coeff_FFT_zip.append(np.abs(rfft(eiip_seq2))[1:])
-
-freq_hist = rfftfreq(len(eiip_seq2), d=1)
-fft_freq = [(fft,freqs) for fft, freqs in zip(rfft(eiip_seq2),freq_hist)]
-for val in fft_freq:
-    hist[bisect.bisect_right(intervals, val[1])-1].append(abs(val[0]))
-    
-plt.plot(freq_hist[1:],np.abs(rfft(eiip_seq2))[1:])
-plot_name = f'ToyModel\nTamanho original'
-plt.show()
-
-coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq1, n=mean_len)))
-coeff_FFT_mean_len.append(np.abs(rfft(eiip_seq2, n=mean_len)))
-
-cross_spectral_zip = element_wise_product(coeff_FFT_zip)
-
-freq = rfftfreq(max_val, d=1)
-cross_spectral = np.prod(coeff_FFT, axis=0)
-
-freq_mean_len = rfftfreq(mean_len, d=1)
-cross_spectral_mean_len = np.prod(coeff_FFT_mean_len, axis=0)
-
-### histogram
-for lst in hist:
-    histogram.append(np.prod(lst))
-
-plt.plot(eiip_seq1)
-plt.title(f'{file_name}\nEIIP seq1')
-plt.show()
-
-plt.plot(eiip_seq2)
-plt.title(f'{file_name}\nEIIP seq2')
-plt.show()
+    plt.plot(eiip_seq2)
+    plt.title(f'{file_name}\nEIIP seq2')
+    plt.show()
 
 
-plt.plot(freq[1:],cross_spectral[1:])
-plt.title(f'{file_name}\nMesmo tamanho\nTamanho da serie {freq.size}')
-plt.show()
+    plt.plot(freq[1:],cross_spectral[1:])
+    plt.title(f'{file_name}\nMesmo tamanho\nTamanho da serie {freq.size}')
+    plt.show()
 
-### produto direto
-freq_zip = rfftfreq(min_val,d=1)
-plt.plot(freq_zip[1:],cross_spectral_zip)
-plt.title(f'{file_name}\nProduto direto entre coeficientes\nTamanho da serie {freq_zip.size}')
-plt.show()
+    ### produto direto
+    freq_zip = rfftfreq(min_val,d=1)
+    plt.plot(freq_zip[1:],cross_spectral_zip)
+    plt.title(f'{file_name}\nProduto direto entre coeficientes\nTamanho da serie {freq_zip.size}')
+    plt.show()
 
-### histogram
-plt.plot(intervals[1:],histogram[1:])
-plt.title(f'{file_name}\nHistograma\nNumero de Bins (0-0.5): {intervals.size}')
-plt.show()
+    ### histogram
+    plt.plot(intervals[1:],histogram[1:])
+    plt.title(f'{file_name}\nHistograma\nNumero de Bins (0-0.5): {intervals.size}')
+    plt.show()
 
-### mean len
-plt.plot(freq_mean_len[1:],cross_spectral_mean_len[1:])
-plt.title(f'{file_name}\nTamanho: média + desvio padrão\nTamanho da serie {freq.size}')
-plt.show()
+    ### mean len
+    plt.plot(freq_mean_len[1:],cross_spectral_mean_len[1:])
+    plt.title(f'{file_name}\nTamanho: média + desvio padrão\nTamanho da serie {freq.size}')
+    plt.show()
+
+
+toy_model1()
