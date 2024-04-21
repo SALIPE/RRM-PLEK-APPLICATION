@@ -1,6 +1,7 @@
 
 
-import matplotlib.pyplot as plt
+from typing import List
+
 import numpy as np
 import numpy.typing as npt
 from numpy import absolute, array
@@ -25,7 +26,7 @@ def cross_spectrum(seq_x: npt.ArrayLike,
     return spectrum
 
 ## produto direto
-def element_wise_product(dft_list):
+def element_wise_product(dft_list:List[List[float]]):
     """
     Performs element-wise product on a list of lists,
     even with varying sublist lengths.
@@ -33,6 +34,6 @@ def element_wise_product(dft_list):
 
     res = dft_list[0]
     for b in dft_list[1:]:
-        res = [x1*x2 for x1, x2 in zip(res,b)]
+        res = [np.multiply(x1,x2) for x1, x2 in zip(res,b)]
 
     return res

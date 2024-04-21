@@ -2,6 +2,7 @@ from typing import Dict, List, Union
 
 import numpy.typing as npt
 from Bio import File, SeqIO, SeqRecord
+from Bio.Seq import Seq
 
 EIIP_NUCLEOTIDE: Dict[str,float] ={
     "A":0.1260,
@@ -32,6 +33,7 @@ EIIP_AMINOACID: Dict[str,float] = {
     'R': 0.0959,
     'D': 0.1263,
     'X': 0.0000,
+    'J': 0.0000,
     '*': 0.0000
 }
 AMINOACID_MAP: Dict[str,List[str]]={
@@ -81,6 +83,9 @@ AMINOACID_MAP: Dict[str,List[str]]={
           'GA','GU','GG','GC']
 }
 
+def translate(seq: str) -> str:
+    sequence = Seq(seq)
+    return str(sequence.translate()).replace('*', '')
 
 def create_aminoacid_map()->Dict[str,str]:
     amn_map = {}
@@ -116,7 +121,8 @@ def nucleotide_map(seq:str)-> npt.ArrayLike:
     return [EIIP_NUCLEOTIDE[char] for char in seq]
 
 def aminoacid_map(seq:str)-> List[float]:
-    amin_char = [AMINOACIDS[seq[i:i+3]] for i in range(0, len(seq), 3)]
+    # amin_char = [AMINOACIDS[seq[i:i+3]] for i in range(0, len(seq), 3)]
+    amin_char = translate(seq)
     return  [EIIP_AMINOACID[char] for char in amin_char]
 
 def rna_aminoacid_map(seq:str)-> List[float]:
