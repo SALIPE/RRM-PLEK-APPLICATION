@@ -1,5 +1,6 @@
 from typing import Dict, List, Union
 
+import numpy as np
 import numpy.typing as npt
 from Bio import File, SeqIO, SeqRecord
 from Bio.Seq import Seq
@@ -85,7 +86,7 @@ AMINOACID_MAP: Dict[str,List[str]]={
 
 def translate(seq: str) -> str:
     sequence = Seq(seq)
-    return str(sequence.translate()).replace('*', '')
+    return str(sequence.translate()).replace('*', '').replace('X', '').replace('J', '')
 
 def create_aminoacid_map()->Dict[str,str]:
     amn_map = {}
@@ -136,3 +137,12 @@ def to_aminoacid_char_value(seq_list: npt.ArrayLike)-> List[List[float]]:
 
 def rna_to_aminoacid_char_value(seq_list: npt.ArrayLike)-> List[List[float]]:
      return [rna_aminoacid_map(seq) for seq in seq_list]
+
+def min_max_norm(x:List[float])->List[float]:
+    # Min-Max Normalization
+    min_val = np.min(x)
+    max_val = np.max(x)
+    print(np.nan_to_num(max_val - min_val))
+    normalized_data = (x - min_val) / np.nan_to_num(max_val - min_val)
+
+    return normalized_data

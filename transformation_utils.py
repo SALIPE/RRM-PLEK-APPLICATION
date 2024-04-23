@@ -8,7 +8,7 @@ from numpy import absolute, array
 from scipy.fft import rfft
 
 
-def to_dft(seq: npt.ArrayLike, size:int)-> tuple:
+def to_dft(seq: npt.ArrayLike, size:int)-> List[List[float]]:
     data = rfft(x=seq, n=size, norm="ortho")
     return data
 

@@ -15,8 +15,9 @@ def model(mrna_bins:List[float],
 
     # X_normalized = preprocessing.normalize(X, norm='l2')
 
-    clf = tree.DecisionTreeClassifier(max_depth=20)
-    clf = clf.fit(X, Y)
+    clf = tree.DecisionTreeClassifier(
+        random_state=42)
+    clf = clf.fit(X,Y)
 
     return clf
 
@@ -33,9 +34,9 @@ def split_data(sequence_path:str, class_name:str):
 
 
     X_train, X_test, y_train, y_test = train_test_split(
-    rna_sequences, [class_name for i in rna_sequences], test_size=0.4, random_state=0)
+    rna_sequences, [class_name for i in rna_sequences], test_size=0.3, random_state=0)
 
-    return X_train, X_test
+    return X_train, X_test, y_test
 
 def predict_sequences(classification_model, to_predict:List[List[float]]):
 
