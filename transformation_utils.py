@@ -8,10 +8,6 @@ from numpy import absolute, array
 from scipy.fft import rfft
 
 
-def to_dft(seq: npt.ArrayLike, size:int)-> List[List[float]]:
-    data = rfft(x=seq, n=size, norm="ortho")
-    return data
-
 def cross_spectrum(seq_x: npt.ArrayLike, 
                    seq_y:npt.ArrayLike,
                    size:int):
