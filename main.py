@@ -154,36 +154,35 @@ def train_model():
     X = df['sequences'].to_list()
     Y = df['labels'].to_list()
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, Y, test_size=0.4, random_state=7,shuffle=True)
+    # X_train, X_test, y_train, y_test = train_test_split(
+    #     X, Y, test_size=0.4, random_state=7,shuffle=True)
 
 
+    # print([y_train[0],y_train[1]])
     filename = "rrna_decisiontree.pickle"
 
     # load model
     # loaded_model = pickle.load(open(filename, "rb"))
 
     print("Carregando modelo...")
-    classification_model = model.model(X=X_train, Y=y_train)
-    
-    tree.plot_tree(classification_model)
-    
+    classification_model = model.model(X=X, Y=Y)
+
     # save model
     pickle.dump(classification_model, open(filename, "wb"))
 
 if __name__ == "__main__":
-    filename = "rrna_decisiontree.pickle"
-    loaded_model = pickle.load(open(filename, "rb"))
+    # filename = "rrna_decisiontree.pickle"
+    # loaded_model = pickle.load(open(filename, "rb"))
 
     
     
-    # plt.figure(figsize=(100,100), dpi=80)
-    plt.show(tree.plot_tree(loaded_model, fontsize=10))
+    # # plt.figure(figsize=(100,100), dpi=80)
+    # plt.show(tree.plot_tree(loaded_model, fontsize=10))
     # plt.savefig('foo.png')
     # plt.savefig('foo.pdf')
     # plt.close()
 
-    # train_model()
+    train_model()
     
   
 

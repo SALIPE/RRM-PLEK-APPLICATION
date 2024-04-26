@@ -10,10 +10,19 @@ def model(X,
     # X_normalized = preprocessing.normalize(X, norm='l2')
 
     clf = tree.DecisionTreeClassifier()
-    clf.fit(X,Y)
-    # cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
-    # scores = cross_val_score(clf, X, Y, cv=5)
-    # print(scores)
+    # clf.fit(X,Y)
+    cv = ShuffleSplit(n_splits=10, test_size=0.3, random_state=42)
+    scores = cross_val_score(clf, X, Y, cv=cv)
+    print(scores)
+
+    max_accuracy = max(scores)
+    for i, (train_index, test_index) in enumerate(cv.split(X)):
+        if(scores[i] == max_accuracy):
+            print(f"Fold {i}:")
+            print(f"  Train: index={train_index}")
+            clf.fit([X[i] for i in train_index],
+               [Y[i] for i in train_index])
+
 
     return clf
 
