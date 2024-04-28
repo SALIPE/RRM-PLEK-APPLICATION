@@ -86,12 +86,12 @@ def handle_data(sequence_path:str, class_name:str, to_dft:bool=True):
     return eiip_sequences, labels
 
 
-def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool):
+def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool, specie:str=""):
     print("Loading and transforming data...")
    
     # mRNA data
-    Mx, My = handle_data(m_path_loc, "mRNA",to_dft)
+    Mx, My = handle_data(m_path_loc, "mRNA-"+specie,to_dft)
     # ncRNA data
-    NCx,NCy = handle_data(nc_path_loc, "ncRNA",to_dft)
+    NCx,NCy = handle_data(nc_path_loc, "ncRNA-"+specie,to_dft)
 
     return Mx,My,NCx,NCy

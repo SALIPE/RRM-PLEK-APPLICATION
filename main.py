@@ -111,12 +111,12 @@ def data_bin_collect(sequences:List[Seq],
     return coeff_FFT_zip
 
 
-def prepare_dft_data(m_path_loc:str,nc_path_loc:str):
-    return tfu.prepare_data(m_path_loc,nc_path_loc,True)
+def prepare_dft_data(m_path_loc:str,nc_path_loc:str, specie:str):
+    return tfu.prepare_data(m_path_loc,nc_path_loc,True,specie)
 
     
-def prepare_protein_data(m_path_loc:str,nc_path_loc:str):
-    return tfu.prepare_data(m_path_loc,nc_path_loc,False)
+def prepare_protein_data(m_path_loc:str,nc_path_loc:str, specie:str):
+    return tfu.prepare_data(m_path_loc,nc_path_loc,False,specie)
 
 def next_power_of_2(x:int)->int:  
     return 1 if x == 0 else 2**(x - 1).bit_length()
@@ -245,14 +245,14 @@ def evaluate_bin_model(nc_bins, m_bins,
 
 if __name__ == "__main__":
 
-    properties =[
+    files =[
         {
-            "specie":"Gorilla gorilla",
+            "specie":"Gorilla_gorilla",
             "m_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia2.txt",
             "nc_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia1.txt"
         },
         {
-            "specie":"Macaca mulatta",
+            "specie":"Macaca_mulatta",
             "m_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia1.txt",
             "nc_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia2.txt"
         }
@@ -287,10 +287,22 @@ if __name__ == "__main__":
 
     for option in options:
 
-        Mx,My,NCx,NCy = prepare_dft_data(
-            m_path_loc=properties[0]["m_path_loc"],
-            nc_path_loc=properties[0]["nc_path_loc"]
+        Mx1,My1,NCx1,NCy1 = prepare_dft_data(
+            m_path_loc=files[0]["m_path_loc"],
+            nc_path_loc=files[0]["nc_path_loc"],
+            specie=files[0]["specie"]
         )
+
+        Mx2,My2,NCx2,NCy2 = prepare_dft_data(
+            m_path_loc=files[1]["m_path_loc"],
+            nc_path_loc=files[1]["nc_path_loc"],
+            specie=files[1]["specie"]
+        )
+
+        Mx =[*Mx1,*Mx2]
+        My =[*My1,*My2]
+        NCx=[*NCx1,*NCx2]
+        NCy=[*NCy1,*NCy2]
 
         X,Y,seq_size,size_ls = evaluate_diff_sequences(
             Mx=Mx,
@@ -302,21 +314,29 @@ if __name__ == "__main__":
             mean_size=option["mean_size"]
         )
 
-        nc_bins, m_bins = get_cross_spectrum(Mx,NCx,option["min_size"],size_ls,seq_size)
+        nc_bins1, m_bins1 = get_cross_spectrum(Mx1,NCx1,option["min_size"],size_ls,seq_size)
+
+        nc_bins2, m_bins2 = get_cross_spectrum(Mx2,NCx2,option["min_size"],size_ls,seq_size)
 
         nc_idx = []
         m_idx = []
 
-        nc_spectrum_mean = np.mean(nc_bins)
-        m_spectrum_mean = np.mean(m_bins)
+        nc_spectrum_mean1 = np.mean(nc_bins1)
+        m_spectrum_mean1 = np.mean(m_bins1)
 
-        print(f'mRNA cross-spectrum mean value: {m_spectrum_mean}') 
-        print(f'ncRNA cross-spectrum mean value: {nc_spectrum_mean}')
+        print(f'mRNA {files[0]["specie"]} cross-spectrum mean value: {m_spectrum_mean1}') 
+        print(f'ncRNA {files[0]["specie"]} cross-spectrum mean value: {nc_spectrum_mean1}')
+
+        nc_spectrum_mean2 = np.mean(nc_bins2)
+        m_spectrum_mean2 = np.mean(m_bins2)
+
+        print(f'mRNA {files[1]["specie"]} cross-spectrum mean value: {m_spectrum_mean2}') 
+        print(f'ncRNA {files[1]["specie"]} cross-spectrum mean value: {nc_spectrum_mean2}')
 
         for i in range(seq_size):
-            if(nc_bins[i]/nc_spectrum_mean > 10):
+            if(nc_bins1[i]/nc_spectrum_mean1 > 10) or (nc_bins2[i]/nc_spectrum_mean2 > 10):
                 nc_idx.append(i)
-            if(m_bins[i]/m_spectrum_mean> 10):
+            if(m_bins1[i]/m_spectrum_mean1> 10) or (m_bins2[i]/m_spectrum_mean2 > 10):
                 m_idx.append(i)
 
     
@@ -324,12 +344,26 @@ if __name__ == "__main__":
 
         clf, dft_model_score = model.cross_val_model(X=X,Y=Y)
 
-        p_Mx,p_My,p_NCx,p_NCy = prepare_protein_data(
-            m_path_loc=properties[0]["m_path_loc"],
-            nc_path_loc=properties[0]["nc_path_loc"]
-        )
 
         # PROTEIN EIIP VALUATION
+        p_Mx1,p_My1,p_NCx1,p_NCy1 = prepare_protein_data(
+            m_path_loc=files[0]["m_path_loc"],
+            nc_path_loc=files[0]["nc_path_loc"],
+            specie=files[0]["specie"]
+        )
+
+        p_Mx2,p_My2,p_NCx2,p_NCy2 = prepare_protein_data(
+            m_path_loc=files[1]["m_path_loc"],
+            nc_path_loc=files[1]["nc_path_loc"],
+            specie=files[1]["specie"]
+        )
+
+        p_Mx =[*p_Mx1,*p_Mx2]
+        p_My =[*p_My1,*p_My2]
+        p_NCx=[*p_NCx1,*p_NCx2]
+        p_NCy=[*p_NCy1,*p_NCy2]
+
+        
         p_X = [*p_Mx,*p_NCx]
         p_y = np.array([*p_My,*p_NCy])
 
