@@ -66,7 +66,7 @@ def collect_bins(sequences,
     return cross_spectral
 
 
-def handle_data(sequence_path:str, class_name:str, to_eiip:bool=True):
+def handle_data(sequence_path:str, class_name:str, to_dft:bool=True):
     sequences = iou.buffer_sequences(sequence_path=sequence_path)
 
     rna_sequences: List[Seq] = []
@@ -74,15 +74,17 @@ def handle_data(sequence_path:str, class_name:str, to_eiip:bool=True):
     for key in sequences:
         seq = sequences[key]
         rna_sequences.append(seq.seq)
-    
-    if to_eiip:
-        eiip_sequences: List[List[float]] = to_fft_collection(sequences=rna_sequences )
-        labels =  [class_name for i in eiip_sequences]
-        return eiip_sequences, labels
+
+    eiip_sequences: List[List[float]]=[]
+
+    if to_dft:
+        eiip_sequences = to_fft_collection(sequences=rna_sequences )
     else:
-        protein_sequences = [iou.translate(seq) for seq in rna_sequences]
-        labels =  [class_name for i in rna_sequences]
-        return protein_sequences, labels
+        eiip_sequences = iou.to_aminoacid_char_value([seq for seq in rna_sequences])
+
+    labels =  [class_name for i in eiip_sequences]
+    return eiip_sequences, labels
+
 
 def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool):
     print("Loading and transforming data...")

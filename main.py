@@ -325,19 +325,27 @@ if __name__ == "__main__":
         p_X = [*p_Mx,*p_NCx]
         p_y = [*p_My,*p_NCy]
 
+        eiip_zip:List[List[float]] = []
+
+        for eiip_seq in p_X:
+            t = seq_size - len(eiip_seq)
+            t = 0 if t<0 else t
+            eiip_seq = np.pad(eiip_seq, pad_width=(0, t), mode='constant')
+            eiip_zip.append([eiip for eiip, lbl in zip(eiip_seq.tolist(),size_ls)])
+
+        eiip_zip = np.array(eiip_zip,dtype=np.float32)
         indices = np.arange(len(p_y))
         np.random.shuffle(indices)
-        p_X, p_y = np.array(p_X)[indices], np.array(p_y)[indices]
+        p_X, p_y = eiip_zip[indices], np.array(p_y)[indices]
         protein_model_score = model.cross_val_model(X=p_X,Y=p_y)
-
-        p_X = [*p_Mx,*p_NCx]
-        p_y = [*p_My,*p_NCy]
 
         p_X = [np.array(seq)[most_id_idxs] for seq in p_X]
 
+        eiip_formatted = np.array(p_X,dtype=np.float32)
+
         indices = np.arange(len(p_y))
         np.random.shuffle(indices)
-        p_X, p_y = np.array(p_X)[indices], np.array(p_y)[indices]
+        p_X, p_y = eiip_formatted[indices], np.array(p_y)[indices]
         protein_model_score = model.cross_val_model(X=p_X,Y=p_y)
         cossic_model_score = model.cross_val_model(X=X,Y=Y)
 
