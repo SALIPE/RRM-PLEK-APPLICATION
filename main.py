@@ -276,7 +276,14 @@ if __name__ == "__main__":
         #     "mean_size":True
         # }
     ]
-    conclusions = {}
+    conclusions = {
+            "sequence_type":[],
+            "m_freq_peak_idxs":[],
+            "nc_freq_peak_idxs":[],
+            "dft_model_scores":[],
+            "protein_model_score":[],
+            "cossic_model_score":[]
+        }
 
     for option in options:
 
@@ -315,15 +322,19 @@ if __name__ == "__main__":
     
         most_id_idxs = list(set(m_idx + nc_idx))
 
-        dft_model_score = model.cross_val_model(X=X,Y=Y)
+        clf, dft_model_score = model.cross_val_model(X=X,Y=Y)
 
         p_Mx,p_My,p_NCx,p_NCy = prepare_protein_data(
             m_path_loc=properties[0]["m_path_loc"],
             nc_path_loc=properties[0]["nc_path_loc"]
         )
 
+        # PROTEIN EIIP VALUATION
         p_X = [*p_Mx,*p_NCx]
-        p_y = [*p_My,*p_NCy]
+        p_y = np.array([*p_My,*p_NCy])
+
+        indices = np.arange(p_y.size)
+        np.random.shuffle(indices)
 
         eiip_zip:List[List[float]] = []
 
@@ -334,32 +345,32 @@ if __name__ == "__main__":
             eiip_zip.append([eiip for eiip, lbl in zip(eiip_seq.tolist(),size_ls)])
 
         eiip_zip = np.array(eiip_zip,dtype=np.float32)
-        indices = np.arange(len(p_y))
-        np.random.shuffle(indices)
-        p_X, p_y = eiip_zip[indices], np.array(p_y)[indices]
-        protein_model_score = model.cross_val_model(X=p_X,Y=p_y)
+        clf, protein_model_score = model.cross_val_model(X=eiip_zip[indices],
+                                                    Y=p_y[indices])
 
-        p_X = [np.array(seq)[most_id_idxs] for seq in p_X]
+        # PROTEIN CROSS-SPECTRUM IDX VALUATION
+        eiip_formatted = [np.array(seq)[most_id_idxs] for seq in p_X]
 
-        eiip_formatted = np.array(p_X,dtype=np.float32)
-
-        indices = np.arange(len(p_y))
-        np.random.shuffle(indices)
-        p_X, p_y = eiip_formatted[indices], np.array(p_y)[indices]
-        protein_model_score = model.cross_val_model(X=p_X,Y=p_y)
-        cossic_model_score = model.cross_val_model(X=X,Y=Y)
-
-        conclusions[option["label"]] = {
-            "m_freq_peak_idxs":m_idx,
-            "nc_freq_peak_idxs":nc_idx,
-            "dft_model_scores":dft_model_score,
-            "protein_model_score":protein_model_score,
-            "cossic_model_score":cossic_model_score
-        }
+        eiip_formatted = np.array(eiip_formatted,dtype=np.float32)
+        clf, cossic_model_score = model.cross_val_model(
+            X=eiip_formatted[indices],
+            Y=p_y[indices])
+        
+        plt.figure(figsize=(200,100), dpi=80)
+        class_names = clf.classes_
+        tree.plot_tree(clf, fontsize=14, class_names=class_names)
+        plt.savefig('cosiic_tree.png')
+        
+        conclusions["sequence_type"].append(option["label"])
+        conclusions["m_freq_peak_idxs"].append(m_idx)
+        conclusions["nc_freq_peak_idxs"].append(nc_idx)
+        conclusions["dft_model_scores"].append(dft_model_score)
+        conclusions["protein_model_score"].append(protein_model_score)
+        conclusions["cossic_model_score"].append(cossic_model_score)
 
     conclusions_df = pd.DataFrame.from_dict(conclusions)
     print(conclusions_df)
-    conclusions_df.to_csv('conclusions.csv', index=False) 
+    conclusions_df.to_csv('conclusions.csv', index=True) 
     
 
 
