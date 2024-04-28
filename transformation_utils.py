@@ -72,6 +72,8 @@ def handle_data(sequence_path:str, class_name:str, to_dft:bool=True):
     rna_sequences: List[Seq] = []
 
     for key in sequences:
+        if(len(rna_sequences)==359):
+            break
         seq = sequences[key]
         rna_sequences.append(seq.seq)
 
@@ -91,7 +93,10 @@ def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool, specie:str=""):
    
     # mRNA data
     Mx, My = handle_data(m_path_loc, "mRNA-"+specie,to_dft)
+    print(f'{len(Mx)} sequences -> {"mRNA-"+specie}')
+    
     # ncRNA data
     NCx,NCy = handle_data(nc_path_loc, "ncRNA-"+specie,to_dft)
+    print(f'{len(NCx)} sequences -> {"ncRNA-"+specie}')
 
     return Mx,My,NCx,NCy

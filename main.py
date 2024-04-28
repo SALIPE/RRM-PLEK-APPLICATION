@@ -271,9 +271,10 @@ if __name__ == "__main__":
             "mean_size":False
         },
         # {
-        #     "max_size":False,
+        #     "label":"Sequence max length",
+        #     "max_size":True,
         #     "min_size":False,
-        #     "mean_size":True
+        #     "mean_size":False
         # }
     ]
     conclusions = {
@@ -321,28 +322,35 @@ if __name__ == "__main__":
         nc_idx = []
         m_idx = []
 
-        nc_spectrum_mean1 = np.mean(nc_bins1)
-        m_spectrum_mean1 = np.mean(m_bins1)
+        # nc_spectrum_mean1 = np.mean(nc_bins1)
+        # m_spectrum_mean1 = np.mean(m_bins1)
 
-        print(f'mRNA {files[0]["specie"]} cross-spectrum mean value: {m_spectrum_mean1}') 
-        print(f'ncRNA {files[0]["specie"]} cross-spectrum mean value: {nc_spectrum_mean1}')
+        # print(f'mRNA {files[0]["specie"]} cross-spectrum mean value: {m_spectrum_mean1}') 
+        # print(f'ncRNA {files[0]["specie"]} cross-spectrum mean value: {nc_spectrum_mean1}')
 
-        nc_spectrum_mean2 = np.mean(nc_bins2)
-        m_spectrum_mean2 = np.mean(m_bins2)
+        # nc_spectrum_mean2 = np.mean(nc_bins2)
+        # m_spectrum_mean2 = np.mean(m_bins2)
 
-        print(f'mRNA {files[1]["specie"]} cross-spectrum mean value: {m_spectrum_mean2}') 
-        print(f'ncRNA {files[1]["specie"]} cross-spectrum mean value: {nc_spectrum_mean2}')
+        # print(f'mRNA {files[1]["specie"]} cross-spectrum mean value: {m_spectrum_mean2}') 
+        # print(f'ncRNA {files[1]["specie"]} cross-spectrum mean value: {nc_spectrum_mean2}')
 
+        # for i in range(seq_size):
+        #     if(nc_bins1[i]/nc_spectrum_mean1 > 10) or (nc_bins2[i]/nc_spectrum_mean2 > 10):
+        #         nc_idx.append(i)
+        #     if(m_bins1[i]/m_spectrum_mean1> 10) or (m_bins2[i]/m_spectrum_mean2 > 10):
+        #         m_idx.append(i)
         for i in range(seq_size):
-            if(nc_bins1[i]/nc_spectrum_mean1 > 10) or (nc_bins2[i]/nc_spectrum_mean2 > 10):
+            if(nc_bins1[i] > 0) or (nc_bins2[i]> 0):
                 nc_idx.append(i)
-            if(m_bins1[i]/m_spectrum_mean1> 10) or (m_bins2[i]/m_spectrum_mean2 > 10):
+            if(m_bins1[i]> 0) or (m_bins2[i] > 0):
                 m_idx.append(i)
 
     
         most_id_idxs = list(set(m_idx + nc_idx))
 
         clf, dft_model_score = model.cross_val_model(X=X,Y=Y)
+
+        model.save_model(clf,"dft_model_tree.png")
 
 
         # PROTEIN EIIP VALUATION
@@ -367,8 +375,10 @@ if __name__ == "__main__":
         p_X = [*p_Mx,*p_NCx]
         p_y = np.array([*p_My,*p_NCy])
 
-        indices = np.arange(p_y.size)
-        np.random.shuffle(indices)
+       
+
+        # indices = np.arange(p_y.size)
+        # np.random.shuffle(indices)
 
         eiip_zip:List[List[float]] = []
 
@@ -379,21 +389,20 @@ if __name__ == "__main__":
             eiip_zip.append([eiip for eiip, lbl in zip(eiip_seq.tolist(),size_ls)])
 
         eiip_zip = np.array(eiip_zip,dtype=np.float32)
-        clf, protein_model_score = model.cross_val_model(X=eiip_zip[indices],
-                                                    Y=p_y[indices])
+        clf, protein_model_score = model.cross_val_model(X=eiip_zip,
+                                                    Y=p_y)
+        
+        model.save_model(clf,"protein_model_tree.png")
 
         # PROTEIN CROSS-SPECTRUM IDX VALUATION
         eiip_formatted = [np.array(seq)[most_id_idxs] for seq in p_X]
 
         eiip_formatted = np.array(eiip_formatted,dtype=np.float32)
         clf, cossic_model_score = model.cross_val_model(
-            X=eiip_formatted[indices],
-            Y=p_y[indices])
-        
-        plt.figure(figsize=(200,100), dpi=80)
-        class_names = clf.classes_
-        tree.plot_tree(clf, fontsize=14, class_names=class_names)
-        plt.savefig('cosiic_tree.png')
+            X=eiip_formatted,
+            Y=p_y)
+                
+        model.save_model(clf,"cossic_tree.png")
         
         conclusions["sequence_type"].append(option["label"])
         conclusions["m_freq_peak_idxs"].append(m_idx)
@@ -404,7 +413,7 @@ if __name__ == "__main__":
 
     conclusions_df = pd.DataFrame.from_dict(conclusions)
     print(conclusions_df)
-    conclusions_df.to_csv('conclusions.csv', index=True) 
+    conclusions_df.to_csv('conclusions_wsn.csv', index=True) 
     
 
 

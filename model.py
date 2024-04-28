@@ -1,5 +1,6 @@
 from typing import List
 
+import matplotlib.pyplot as plt
 from sklearn import tree
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 
@@ -23,4 +24,10 @@ def cross_val_model(X,
                [Y[i] for i in train_index])
 
     return clf, scores
+
+def save_model(model, filename:str):
+    plt.figure(figsize=(300,100), dpi=80)
+    class_names = model.classes_
+    tree.plot_tree(model, fontsize=14, class_names=class_names)
+    plt.savefig(filename)
 
