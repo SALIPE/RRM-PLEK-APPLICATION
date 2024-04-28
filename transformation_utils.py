@@ -2,10 +2,14 @@
 
 from typing import List
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+from Bio.Seq import Seq
 from numpy import absolute, array
-from scipy.fft import rfft
+from scipy.fft import rfft, rfftfreq
+
+import io_utils as iou
 
 
 def cross_spectrum(seq_x: npt.ArrayLike, 
@@ -22,14 +26,56 @@ def cross_spectrum(seq_x: npt.ArrayLike,
     return spectrum
 
 ## produto direto
-def element_wise_product(dft_list:List[List[float]]):
+def element_wise_product(dft_list:List[List[float]])->List[float]:
     """
     Performs element-wise product on a list of lists,
     even with varying sublist lengths.
     """
 
-    res = dft_list[0]
+    res:List[float] = dft_list[0]
     for b in dft_list[1:]:
         res = [np.multiply(x1,x2) for x1, x2 in zip(res,b)]
 
     return res
+
+def to_fft_collection(sequences:List[Seq])->List[List[float]]:
+  
+    amn_values = iou.to_aminoacid_char_value([seq for seq in sequences])
+    coeff_FFT_zip = []
+
+    for pseq in amn_values:
+        dtf_to_zip = rfft(x=pseq)
+        coeff_FFT_zip.append(np.abs(dtf_to_zip)[1:])
+
+    return coeff_FFT_zip
+
+def collect_bins(sequences,
+                 seq_size:int,
+                 class_name:str=""):
+    
+    freq:List[float] = rfftfreq((seq_size*2)-1, d=1)
+    arr_list = np.array(sequences, dtype=float)
+    cross_spectral = np.nan_to_num(np.prod(a=arr_list, axis=0))
+    print(cross_spectral)
+
+    plt.plot(freq,cross_spectral)
+    plt.title(f'Bins {class_name}\nTamanho da serie {freq.size}')
+    plt.show()
+
+    return cross_spectral
+
+
+def handle_data(sequence_path:str, class_name:str):
+    sequences = iou.buffer_sequences(sequence_path=sequence_path)
+
+    rna_sequences: List[Seq] = []
+
+    for key in sequences:
+        seq = sequences[key]
+        rna_sequences.append(seq.seq)
+
+    eiip_sequences: List[List[float]] = to_fft_collection(sequences=rna_sequences )
+ 
+    labels =  [class_name for i in eiip_sequences]
+
+    return eiip_sequences, labels

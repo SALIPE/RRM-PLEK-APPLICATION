@@ -8,10 +8,14 @@ import pandas as pd
 from Bio.Seq import Seq
 from scipy.fft import rfft, rfftfreq
 from sklearn import tree
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+from sklearn.model_selection import ShuffleSplit, cross_val_score
 
 import io_utils as iou
 import model
+import transformation_utils as tfu
+
+LABELS = ["mRNA","ncRNA"]
 
 
 def data_bin_collect(sequences:List[Seq],
@@ -107,21 +111,8 @@ def data_bin_collect(sequences:List[Seq],
     return coeff_FFT_zip
 
 
-def handle_data(sequence_path:str, class_name:str):
-    sequences = iou.buffer_sequences(sequence_path=sequence_path)
 
-    rna_sequences: List[Seq] = []
-
-    for key in sequences:
-        seq = sequences[key]
-        rna_sequences.append(seq.seq)
- 
-    labels =  [class_name for i in rna_sequences]
-
-    return rna_sequences, labels
-
-
-def train_model():
+def prepare_dft_data():
 
     # m_path_loc = "..\dataset-plek\Dados\Human\human_rna_fna_refseq_mRNA_22389"
     # nc_path_loc = "..\dataset-plek\Dados\Human\human_gencode_v17_lncRNA_22389"
@@ -132,57 +123,166 @@ def train_model():
     m_path_loc = "..\dataset-plek\Gorilla_gorilla\sequencia2.txt"
     nc_path_loc = "..\dataset-plek\Gorilla_gorilla\sequencia1.txt"
 
-    print("Carregando e transformando dados...")
+    print("Loading and transforming data...")
    
     # mRNA data
-    Mx, My = handle_data(m_path_loc, "mRNA")
-   
+    Mx, My = tfu.handle_data(m_path_loc, "mRNA")
     # ncRNA data
-    NCx,NCy = handle_data(nc_path_loc, "ncRNA")
-   
+    NCx,NCy = tfu.handle_data(nc_path_loc, "ncRNA")
 
-    min_val = len(min([*Mx,NCx],key=len))
- 
-    Mx = data_bin_collect(sequences=Mx, seq_size=min_val)
-    print("mRNAs transformados.")
-    NCx = data_bin_collect(sequences=NCx, seq_size=min_val)
-    print("ncRNAs transformados.")
+    return Mx,My,NCx,NCy
 
-    df = pd.DataFrame({'sequences': [*Mx,*NCx], 
-                       'labels': [*My,*NCy]})
+def next_power_of_2(x:int)->int:  
+    return 1 if x == 0 else 2**(x - 1).bit_length()
+
+def evaluate_diff_sequences(Mx,My,NCx,NCy,
+                            min_size:bool = True,
+                            max_size:bool = False,
+                            mean_size:bool = False):
+    X = [*Mx,*NCx]
+
+    dfts:List[List[float]] = []
+    size_ls:List[int]= []
+    seq_size:int = 0
+
+    if min_size:
+        min_value = len(min(X,key=len))
+        print(f'Sequence Min length value: {min_value}')
+        size_ls = [i for i in range(min_value)]
+        seq_size=min_value
+
+    elif max_size:
+        max_value = len(max(X,key=len))
+        # max_value = next_power_of_2(max_value)
+        print(f'Sequence Max length value: {max_value}')
+        size_ls = [i for i in range(max_value)]
+        seq_size=max_value
+        
     
+    elif mean_size:
+        mean_value = np.mean([len(i) for i in X])
+        std_value = np.std([len(i) for i in X])
+        mean_len = int(mean_value + std_value)
+        print(f'Sequence Mean length value: {mean_len}')
+        size_ls = [i for i in range(mean_len)]
+        seq_size=mean_len
+
+
+    for eiip_seq in X:
+        if(max_size or mean_size):
+            t = seq_size - len(eiip_seq)
+            t = 0 if t<0 else t
+            eiip_seq = np.pad(eiip_seq, pad_width=(0, t), mode='constant')
+            dfts.append([fft for fft, freqs in zip(eiip_seq.tolist(),size_ls)])
+        else:
+            dfts.append([fft for fft, freqs in zip(eiip_seq,size_ls)])
+
+
+    df = pd.DataFrame({'sequences': dfts, 
+                        'labels': [*My,*NCy]})
+
     X = df['sequences'].to_list()
     Y = df['labels'].to_list()
 
-    # X_train, X_test, y_train, y_test = train_test_split(
-    #     X, Y, test_size=0.4, random_state=7,shuffle=True)
+    X  = np.nan_to_num(np.array(X, dtype=np.float32))
+
+    return X,Y,seq_size,size_ls
+
+    # filename = "rrna_decisiontree.pickle"
+
+    # # load model
+    # # loaded_model = pickle.load(open(filename, "rb"))
+
+    # print("Carregando modelo...")
+    # classification_model = model.model(X=X, Y=Y)
+
+    # # save model
+    # pickle.dump(classification_model, open(filename, "wb"))
 
 
-    # print([y_train[0],y_train[1]])
-    filename = "rrna_decisiontree.pickle"
+def get_cross_spectrum(Mx:List[List[float]],
+                       NCx:List[List[float]],
+                       is_min:bool,
+                       seq_size_ls:List[int],
+                       seq_size:int):
+    mrnas_zip = []
+    ncrnas_zip = []
+    
+    for eiip_seq in Mx:
+        if is_min:
+            mrnas_zip.append([fft for fft, freqs in zip(eiip_seq,seq_size_ls)])
+        else:
+            t = seq_size - len(eiip_seq)
+            t = 0 if t<0 else t
+            eiip_seq = np.pad(eiip_seq, pad_width=(0, t), mode='constant')
+            mrnas_zip.append([fft for fft, freqs in zip(eiip_seq.tolist(),seq_size_ls)])
+       
 
-    # load model
-    # loaded_model = pickle.load(open(filename, "rb"))
+    for eiip_seq in NCx:
+        if is_min:
+            ncrnas_zip.append([fft for fft, freqs in zip(eiip_seq,seq_size_ls)])
+        else:
+            t = seq_size - len(eiip_seq)
+            t = 0 if t<0 else t
+            eiip_seq = np.pad(eiip_seq, pad_width=(0, t), mode='constant')
+            ncrnas_zip.append([fft for fft, freqs in zip(eiip_seq.tolist(),seq_size_ls)])
 
-    print("Carregando modelo...")
-    classification_model = model.model(X=X, Y=Y)
 
-    # save model
-    pickle.dump(classification_model, open(filename, "wb"))
+    nc_bins = tfu.collect_bins(sequences=ncrnas_zip,
+                       seq_size=seq_size,
+                       class_name="ncRNA")
+    m_bins = tfu.collect_bins(sequences=mrnas_zip,
+                       seq_size=seq_size,
+                       class_name="mRNA")
+    
+    nc_bins = np.nan_to_num(np.array(nc_bins, dtype=np.float32))
+    m_bins = np.nan_to_num(np.array(m_bins, dtype=np.float32))
+
+    return nc_bins, m_bins
+
+def confusion_matrix_scorer(clf, X, y):
+    y_pred = clf.predict(X)
+    cm = confusion_matrix(y, y_pred, labels=LABELS)
+    return {'tn': cm[0, 0], 'fp': cm[0, 1],
+            'fn': cm[1, 0], 'tp': cm[1, 1]}
+
+
+def evaluate_bin_model(nc_bins, m_bins,
+                       X, Y):
+    indices = np.arange(len(Y))
+    np.random.shuffle(indices)
+    X, Y = np.array(X)[indices], np.array(Y)[indices]
+
+    clf = tree.DecisionTreeClassifier()
+    clf.fit([nc_bins, m_bins],LABELS)
+
+    print([nc_bins, m_bins])
+
+    scores = confusion_matrix_scorer(clf, X, Y)
+    print(scores)
+
 
 if __name__ == "__main__":
-    # filename = "rrna_decisiontree.pickle"
-    # loaded_model = pickle.load(open(filename, "rb"))
+    Mx,My,NCx,NCy = prepare_dft_data()
+
+    X,Y,seq_size,size_ls = evaluate_diff_sequences(
+        Mx=Mx,
+        My=My,
+        NCx=NCx,
+        NCy=NCy,
+        max_size=False,
+        min_size=False,
+        mean_size=True
+    )
+
+    nc_bins, m_bins = get_cross_spectrum(Mx,NCx,False,size_ls,seq_size)
+
+    evaluate_bin_model(nc_bins, m_bins,X, Y)
 
     
-    
-    # # plt.figure(figsize=(100,100), dpi=80)
-    # plt.show(tree.plot_tree(loaded_model, fontsize=10))
-    # plt.savefig('foo.png')
-    # plt.savefig('foo.pdf')
-    # plt.close()
 
-    train_model()
+    
+
     
   
 

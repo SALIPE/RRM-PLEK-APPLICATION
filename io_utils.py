@@ -142,7 +142,6 @@ def min_max_norm(x:List[float])->List[float]:
     # Min-Max Normalization
     min_val = np.min(x)
     max_val = np.max(x)
-    print(np.nan_to_num(max_val - min_val))
     normalized_data = (x - min_val) / np.nan_to_num(max_val - min_val)
 
     return normalized_data
