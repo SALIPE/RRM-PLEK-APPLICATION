@@ -111,26 +111,12 @@ def data_bin_collect(sequences:List[Seq],
     return coeff_FFT_zip
 
 
+def prepare_dft_data(m_path_loc:str,nc_path_loc:str):
+    return tfu.prepare_data(m_path_loc,nc_path_loc,True)
 
-def prepare_dft_data():
-
-    # m_path_loc = "..\dataset-plek\Dados\Human\human_rna_fna_refseq_mRNA_22389"
-    # nc_path_loc = "..\dataset-plek\Dados\Human\human_gencode_v17_lncRNA_22389"
-
-    # m_path_loc = "..\dataset-plek\Macaca_mulatta\sequencia1.txt"
-    # nc_path_loc = "..\dataset-plek\Macaca_mulatta\sequencia2.txt"
-
-    m_path_loc = "..\dataset-plek\Gorilla_gorilla\sequencia2.txt"
-    nc_path_loc = "..\dataset-plek\Gorilla_gorilla\sequencia1.txt"
-
-    print("Loading and transforming data...")
-   
-    # mRNA data
-    Mx, My = tfu.handle_data(m_path_loc, "mRNA")
-    # ncRNA data
-    NCx,NCy = tfu.handle_data(nc_path_loc, "ncRNA")
-
-    return Mx,My,NCx,NCy
+    
+def prepare_protein_data(m_path_loc:str,nc_path_loc:str):
+    return tfu.prepare_data(m_path_loc,nc_path_loc,False)
 
 def next_power_of_2(x:int)->int:  
     return 1 if x == 0 else 2**(x - 1).bit_length()
@@ -235,9 +221,6 @@ def get_cross_spectrum(Mx:List[List[float]],
                        seq_size=seq_size,
                        class_name="mRNA")
     
-    nc_bins = np.nan_to_num(np.array(nc_bins, dtype=np.float32))
-    m_bins = np.nan_to_num(np.array(m_bins, dtype=np.float32))
-
     return nc_bins, m_bins
 
 def confusion_matrix_scorer(clf, X, y):
@@ -256,28 +239,122 @@ def evaluate_bin_model(nc_bins, m_bins,
     clf = tree.DecisionTreeClassifier()
     clf.fit([nc_bins, m_bins],LABELS)
 
-    print([nc_bins, m_bins])
-
     scores = confusion_matrix_scorer(clf, X, Y)
     print(scores)
 
 
 if __name__ == "__main__":
-    Mx,My,NCx,NCy = prepare_dft_data()
 
-    X,Y,seq_size,size_ls = evaluate_diff_sequences(
-        Mx=Mx,
-        My=My,
-        NCx=NCx,
-        NCy=NCy,
-        max_size=False,
-        min_size=False,
-        mean_size=True
-    )
+    properties =[
+        {
+            "specie":"Gorilla gorilla",
+            "m_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia2.txt",
+            "nc_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia1.txt"
+        },
+        {
+            "specie":"Macaca mulatta",
+            "m_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia1.txt",
+            "nc_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia2.txt"
+        }
+    ]
+    options=[
+        {
+            "label":"Sequence mean length",
+            "max_size":False,
+            "min_size":False,
+            "mean_size":True
+        },
+        {
+            "label":"Sequence min length",
+            "max_size":False,
+            "min_size":True,
+            "mean_size":False
+        },
+        # {
+        #     "max_size":False,
+        #     "min_size":False,
+        #     "mean_size":True
+        # }
+    ]
+    conclusions = {}
 
-    nc_bins, m_bins = get_cross_spectrum(Mx,NCx,False,size_ls,seq_size)
+    for option in options:
 
-    evaluate_bin_model(nc_bins, m_bins,X, Y)
+        Mx,My,NCx,NCy = prepare_dft_data(
+            m_path_loc=properties[0]["m_path_loc"],
+            nc_path_loc=properties[0]["nc_path_loc"]
+        )
+
+        X,Y,seq_size,size_ls = evaluate_diff_sequences(
+            Mx=Mx,
+            My=My,
+            NCx=NCx,
+            NCy=NCy,
+            max_size=option["max_size"],
+            min_size=option["min_size"],
+            mean_size=option["mean_size"]
+        )
+
+        nc_bins, m_bins = get_cross_spectrum(Mx,NCx,option["min_size"],size_ls,seq_size)
+
+        nc_idx = []
+        m_idx = []
+
+        nc_spectrum_mean = np.mean(nc_bins)
+        m_spectrum_mean = np.mean(m_bins)
+
+        print(f'mRNA cross-spectrum mean value: {m_spectrum_mean}') 
+        print(f'ncRNA cross-spectrum mean value: {nc_spectrum_mean}')
+
+        for i in range(seq_size):
+            if(nc_bins[i]/nc_spectrum_mean > 10):
+                nc_idx.append(i)
+            if(m_bins[i]/m_spectrum_mean> 10):
+                m_idx.append(i)
+
+    
+        most_id_idxs = list(set(m_idx + nc_idx))
+
+        dft_model_score = model.cross_val_model(X=X,Y=Y)
+
+        p_Mx,p_My,p_NCx,p_NCy = prepare_protein_data(
+            m_path_loc=properties[0]["m_path_loc"],
+            nc_path_loc=properties[0]["nc_path_loc"]
+        )
+
+        p_X = [*p_Mx,*p_NCx]
+        p_y = [*p_My,*p_NCy]
+
+        indices = np.arange(len(p_y))
+        np.random.shuffle(indices)
+        p_X, p_y = np.array(p_X)[indices], np.array(p_y)[indices]
+        protein_model_score = model.cross_val_model(X=p_X,Y=p_y)
+
+        p_X = [*p_Mx,*p_NCx]
+        p_y = [*p_My,*p_NCy]
+
+        p_X = [np.array(seq)[most_id_idxs] for seq in p_X]
+
+        indices = np.arange(len(p_y))
+        np.random.shuffle(indices)
+        p_X, p_y = np.array(p_X)[indices], np.array(p_y)[indices]
+        protein_model_score = model.cross_val_model(X=p_X,Y=p_y)
+        cossic_model_score = model.cross_val_model(X=X,Y=Y)
+
+        conclusions[option["label"]] = {
+            "m_freq_peak_idxs":m_idx,
+            "nc_freq_peak_idxs":nc_idx,
+            "dft_model_scores":dft_model_score,
+            "protein_model_score":protein_model_score,
+            "cossic_model_score":cossic_model_score
+        }
+
+    conclusions_df = pd.DataFrame.from_dict(conclusions)
+    print(conclusions_df)
+    conclusions_df.to_csv('conclusions.csv', index=False) 
+    
+
+
 
     
 

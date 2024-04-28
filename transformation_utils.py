@@ -54,18 +54,19 @@ def collect_bins(sequences,
                  class_name:str=""):
     
     freq:List[float] = rfftfreq((seq_size*2)-1, d=1)
-    arr_list = np.array(sequences, dtype=float)
+    # arr_list = np.array(sequences, dtype=np.float32)
+    arr_list = np.array(sequences)
     cross_spectral = np.nan_to_num(np.prod(a=arr_list, axis=0))
-    print(cross_spectral)
+    # print(cross_spectral)
 
-    plt.plot(freq,cross_spectral)
-    plt.title(f'Bins {class_name}\nTamanho da serie {freq.size}')
-    plt.show()
+    # plt.plot(freq,cross_spectral)
+    # plt.title(f'Cross-Spectral {class_name}\nTamanho da serie {freq.size}')
+    # plt.show()
 
     return cross_spectral
 
 
-def handle_data(sequence_path:str, class_name:str):
+def handle_data(sequence_path:str, class_name:str, to_eiip:bool=True):
     sequences = iou.buffer_sequences(sequence_path=sequence_path)
 
     rna_sequences: List[Seq] = []
@@ -73,9 +74,22 @@ def handle_data(sequence_path:str, class_name:str):
     for key in sequences:
         seq = sequences[key]
         rna_sequences.append(seq.seq)
+    
+    if to_eiip:
+        eiip_sequences: List[List[float]] = to_fft_collection(sequences=rna_sequences )
+        labels =  [class_name for i in eiip_sequences]
+        return eiip_sequences, labels
+    else:
+        protein_sequences = [iou.translate(seq) for seq in rna_sequences]
+        labels =  [class_name for i in rna_sequences]
+        return protein_sequences, labels
 
-    eiip_sequences: List[List[float]] = to_fft_collection(sequences=rna_sequences )
- 
-    labels =  [class_name for i in eiip_sequences]
+def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool):
+    print("Loading and transforming data...")
+   
+    # mRNA data
+    Mx, My = handle_data(m_path_loc, "mRNA",to_dft)
+    # ncRNA data
+    NCx,NCy = handle_data(nc_path_loc, "ncRNA",to_dft)
 
-    return eiip_sequences, labels
+    return Mx,My,NCx,NCy
