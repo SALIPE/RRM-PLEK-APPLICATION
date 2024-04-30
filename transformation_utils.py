@@ -1,5 +1,6 @@
 
 
+import bisect
 from typing import List
 
 import matplotlib.pyplot as plt
@@ -7,23 +8,10 @@ import numpy as np
 import numpy.typing as npt
 from Bio.Seq import Seq
 from numpy import absolute, array
-from scipy.fft import rfft, rfftfreq
+from scipy.fft import irfft, rfft, rfftfreq
 
 import io_utils as iou
 
-
-def cross_spectrum(seq_x: npt.ArrayLike, 
-                   seq_y:npt.ArrayLike,
-                   size:int):
-    spectrum = []
-    n = range(size)
-    for i in n:
-        spectrum.append(seq_x[i].real*seq_y[i].imag)
-
-    spectrum = array(spectrum)
-    spectrum = absolute(spectrum)
-
-    return spectrum
 
 ## produto direto
 def element_wise_product(dft_list:List[List[float]])->List[float]:
@@ -57,6 +45,7 @@ def collect_bins(sequences,
     # arr_list = np.array(sequences, dtype=np.float32)
     arr_list = np.array(sequences)
     cross_spectral = np.nan_to_num(np.prod(a=arr_list, axis=0))
+    cross_spectral = iou.min_max_norm(cross_spectral)
     # print(cross_spectral)
 
     # plt.plot(freq,cross_spectral)
@@ -92,11 +81,37 @@ def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool, specie:str=""):
     print("Loading and transforming data...")
    
     # mRNA data
-    Mx, My = handle_data(m_path_loc, "mRNA-"+specie,to_dft)
-    print(f'{len(Mx)} sequences -> {"mRNA-"+specie}')
+    Mx, My = handle_data(m_path_loc, "mRNA_"+specie,to_dft)
+    print(f'{len(Mx)} sequences -> {"mRNA_"+specie}')
     
     # ncRNA data
-    NCx,NCy = handle_data(nc_path_loc, "ncRNA-"+specie,to_dft)
-    print(f'{len(NCx)} sequences -> {"ncRNA-"+specie}')
+    NCx,NCy = handle_data(nc_path_loc, "ncRNA_"+specie,to_dft)
+    print(f'{len(NCx)} sequences -> {"ncRNA_"+specie}')
 
     return Mx,My,NCx,NCy
+
+def return_to_eiip(fft_sequences,frequencies,selected_freq_indexes):
+    eiip_seqs= []
+    # Suppose selected_freq_indexes contains the indexes of frequencies you're interested in
+    selected_frequencies = np.array(frequencies)[selected_freq_indexes]
+
+    for dft_seq in fft_sequences:
+        freqs:List[float] = rfftfreq((len(dft_seq)*2)-1, d=1)
+
+        # Find the indexes in the DFT output corresponding to these frequencies
+        corresponding_indexes = [bisect.bisect(freqs, freq)-1 for freq in selected_frequencies]
+        corresponding_indexes = list(set(corresponding_indexes))
+        corresponding_indexes.sort()
+
+        #Use the iDFT to reconstruct the original sequence from these frequency components
+        reconstructed_dft_seq = np.zeros_like([0,*dft_seq])
+        reconstructed_dft_seq[corresponding_indexes] = np.array(dft_seq)[corresponding_indexes]
+        reconstructed_seq = irfft(reconstructed_dft_seq)
+        reconstructed_seq = [float("{:.4f}".format(x)) for x in reconstructed_seq]
+        reconstructed_seq = np.abs(reconstructed_seq)
+
+    
+        eiip_seqs.append(reconstructed_seq)
+
+    
+    return eiip_seqs

@@ -1,7 +1,11 @@
 from typing import List
 
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn import tree
+from sklearn.metrics import (ConfusionMatrixDisplay, accuracy_score,
+                             classification_report, confusion_matrix,
+                             multilabel_confusion_matrix)
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 
 
@@ -30,4 +34,30 @@ def save_model(model, filename:str):
     class_names = model.classes_
     tree.plot_tree(model, fontsize=14, class_names=class_names)
     plt.savefig(filename)
+    plt.close("all")
+
+
+def confusion_matrix_scorer(clf, X, y):
+    y_pred = clf.predict(X)
+    class_names = clf.classes_
+    # cm = multilabel_confusion_matrix(y, y_pred, labels=class_names)
+    # clf_rep = classification_report(y, y_pred, target_names=class_names)
+
+    accuracy = accuracy_score(y, y_pred,)
+    return accuracy
+
+
+def evaluate_bin_model(X_bins, y_bins, X, Y):
+    indices = np.arange(len(Y))
+    np.random.shuffle(indices)
+    X_rnd, Y_rnd = np.array(X)[indices], np.array(Y)[indices]
+
+    clf = tree.DecisionTreeClassifier()
+    clf.fit(X_bins,y_bins)
+
+    scores = confusion_matrix_scorer(clf, X_rnd, Y_rnd)
+
+    return clf, scores
+
+
 
