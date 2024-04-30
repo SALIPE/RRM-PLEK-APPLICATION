@@ -20,13 +20,13 @@ intervals = np.linspace(0, max_freq, hist_bins)
 
 options=[
     {
-        "label":"mean_length",
+        "label":"mean_length_",
         "max_size":False,
         "min_size":False,
         "mean_size":True
     },
     {
-        "label":"min_length",
+        "label":"min_length_",
         "max_size":False,
         "min_size":True,
         "mean_size":False
@@ -262,7 +262,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
 
     print(f'\nValuating {specie} original size cross spectrum model...\n')
     clf, cossic_scores =  model.evaluate_bin_model(X_bins, y_bins, X_bins_test, y_bins_test)
-    # model.save_model(clf,specie+"_cossic_histogram_tree.png")
+    model.save_model(clf,specie+"single_cossic_histogram_tree.png")
 
     conclusion["sequence_type"].append("Cross-Spectrum Validation 2-classes-"+specie)
     conclusion["seq_size"].append(None)
@@ -292,7 +292,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
         #DFT SEQUENCE VALUATION
         print(f'\nValuating {label} DFT model...\n')
         clf, dft_model_score = model.cross_val_model(X=X,Y=Y)
-        # model.save_model(clf,label+"dft_model_tree.png")
+        model.save_model(clf,label+"dft_model_tree.png")
 
         #GET BINS FITTED FOR SE SEQUENCE LENGTH
         nc_bins, m_bins = get_cross_spectrum(Mx,NCx,option["min_size"],size_ls,seq_size)
@@ -309,7 +309,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
 
         print(f'\nValuating {label} cross spectrum model...\n')
         clf, spectrum_scores =  model.evaluate_bin_model(X_bins, y_bins, X, Y)
-        # model.save_model(clf,label+"cossic_cross_spectrum_tree.png")
+        model.save_model(clf,label+"cossic_cross_spectrum_tree.png")
 
 
         for i in range(seq_size):
@@ -338,20 +338,20 @@ def single_specie_valuate(file:dict, conclusion:dict):
         print(f'\nValuating {label} EIIP model...\n')
         clf, protein_model_score = model.cross_val_model(X=eiip_zip,
                                                     Y=p_y)
-        # model.save_model(clf,label+"protein_model_tree.png")
+        model.save_model(clf,label+"protein_model_tree.png")
 
         '''
         Extract the most valuable indexes from the eiip seqs to see if with 
         the peaks is possible to classify
 
         '''
-        eiip_formatted = [np.array(seq)[most_id_idxs] for seq in p_X]
-        eiip_formatted = np.array(eiip_formatted,dtype=np.float32)
+        # eiip_formatted = [np.array(seq)[most_id_idxs] for seq in p_X]
+        # eiip_formatted = np.array(eiip_formatted,dtype=np.float32)
 
-        print(f'\nValuating {label} EIIP formatted model...\n')
-        clf, cossic_model_score = model.cross_val_model(
-            X=eiip_formatted,
-            Y=p_y)        
+        # print(f'\nValuating {label} EIIP formatted model...\n')
+        # clf, cossic_model_score = model.cross_val_model(
+        #     X=eiip_formatted,
+        #     Y=p_y)        
         # model.save_model(clf,label+"eiip_formatted_tree.png")
 
 
@@ -362,7 +362,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
         conclusion["dft_model_scores"].append(dft_model_score)
         conclusion["spectrum_model_scores"].append(spectrum_scores)
         conclusion["protein_model_score"].append(protein_model_score)
-        conclusion["cossic_model_score"].append(cossic_model_score)
+        conclusion["cossic_model_score"].append(None)
 
 
 
@@ -590,14 +590,14 @@ if __name__ == "__main__":
 
         '''
 
-        eiip_formatted = [np.array(seq)[most_id_idxs] for seq in p_X]
-        eiip_formatted = np.array(eiip_formatted,dtype=np.float32)
+        # eiip_formatted = [np.array(seq)[most_id_idxs] for seq in p_X]
+        # eiip_formatted = np.array(eiip_formatted,dtype=np.float32)
 
-        print(f'\nValuating {label} EIIP formatted model...\n')
-        clf, cossic_model_score = model.cross_val_model(
-            X=eiip_formatted,
-            Y=p_y)        
-        model.save_model(clf,label+"eiip_formatted_tree.png")
+        # print(f'\nValuating {label} EIIP formatted model...\n')
+        # clf, cossic_model_score = model.cross_val_model(
+        #     X=eiip_formatted,
+        #     Y=p_y)        
+        # model.save_model(clf,label+"eiip_formatted_tree.png")
 
 
         conclusions["sequence_type"].append("4-classes: "+label)
@@ -607,7 +607,7 @@ if __name__ == "__main__":
         conclusions["dft_model_scores"].append(dft_model_score)
         conclusions["spectrum_model_scores"].append(spectrum_scores)
         conclusions["protein_model_score"].append(protein_model_score)
-        conclusions["cossic_model_score"].append(cossic_model_score)
+        conclusions["cossic_model_score"].append(None)
 
     conclusions_df = pd.DataFrame.from_dict(conclusions)
     conclusions_df.to_csv('conclusions_w_single_hist.csv', index=True) 
