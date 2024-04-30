@@ -40,12 +40,12 @@ options=[
 ]
 
 
-def prepare_dft_data(m_path_loc:str,nc_path_loc:str, specie:str):
-    return tfu.prepare_data(m_path_loc,nc_path_loc,True,specie)
+def prepare_dft_data(m_path_loc:str,nc_path_loc:str, specie:str, have_limit:bool=True):
+    return tfu.prepare_data(m_path_loc,nc_path_loc,True,specie,have_limit)
 
     
-def prepare_protein_data(m_path_loc:str,nc_path_loc:str, specie:str):
-    return tfu.prepare_data(m_path_loc,nc_path_loc,False,specie)
+def prepare_protein_data(m_path_loc:str,nc_path_loc:str, specie:str,have_limit:bool=True):
+    return tfu.prepare_data(m_path_loc,nc_path_loc,False,specie,have_limit)
 
 def next_power_of_2(x:int)->int:  
     return 1 if x == 0 else 2**(x - 1).bit_length()
@@ -79,9 +79,9 @@ def get_histogram_bins(sequences:List[List[float]],
     # print(f'\n{class_name}Descision Freqs idxs:')
     # print(decision_freq_idx)
 
-    plt.plot(intervals,histogram)
-    plt.title(f'Histograma {class_name}\nNumero de Bins (0-{max_freq}): {intervals.size}')
-    plt.show()
+    # plt.plot(intervals,histogram)
+    # plt.title(f'Histograma {class_name}\nNumero de Bins (0-{max_freq}): {intervals.size}')
+    # plt.show()
 
     return histogram,decision_freq_idx
 
@@ -212,8 +212,8 @@ def extract_determinisct_proteins(fft_sequences,
     
     filtered_sequences = []
     ifft_sequences =  tfu.return_to_eiip(fft_sequences,intervals,selected_freq_indexes)
-    print("\n")
-    print(ifft_sequences[0])
+    # print("\n")
+    # print(ifft_sequences[0])
     for p_seq, f_seq in zip(p_sequences,ifft_sequences):
         filtered:List[float] = []
         #Filtering protein sequences
@@ -234,19 +234,21 @@ def single_specie_valuate(file:dict, conclusion:dict):
     Mx,My,NCx,NCy = prepare_dft_data(
         m_path_loc=file["m_path_loc"],
         nc_path_loc=file["nc_path_loc"],
-        specie=specie
+        specie=specie,
+        have_limit=True
     )
         
     p_Mx,p_My,p_NCx,p_NCy = prepare_protein_data(
         m_path_loc=file["m_path_loc"],
         nc_path_loc=file["nc_path_loc"],
-        specie=specie
+        specie=specie,
+        have_limit=True
     )
 
-    m_hist_bins,m_idxs = get_histogram_bins(sequences=Mx1, 
+    m_hist_bins,m_idxs = get_histogram_bins(sequences=Mx, 
                            class_name="mRNA_"+specie)
         
-    nc_hist_bins,nc_idxs = get_histogram_bins(sequences=NCx1, 
+    nc_hist_bins,nc_idxs = get_histogram_bins(sequences=NCx, 
                         class_name="ncRNA_"+specie)
     
     X_bins=[m_hist_bins,nc_hist_bins]
@@ -263,6 +265,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
     # model.save_model(clf,specie+"_cossic_histogram_tree.png")
 
     conclusion["sequence_type"].append("Cross-Spectrum Validation 2-classes-"+specie)
+    conclusion["seq_size"].append(None)
     conclusion["m_freq_peak_idxs"].append(m_idxs)
     conclusion["nc_freq_peak_idxs"].append(nc_idxs)
     conclusion["dft_model_scores"].append(None)
@@ -292,7 +295,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
         # model.save_model(clf,label+"dft_model_tree.png")
 
         #GET BINS FITTED FOR SE SEQUENCE LENGTH
-        nc_bins, m_bins = get_cross_spectrum(Mx1,NCx1,option["min_size"],size_ls,seq_size)
+        nc_bins, m_bins = get_cross_spectrum(Mx,NCx,option["min_size"],size_ls,seq_size)
 
         nc_idx = []
         m_idx = []
@@ -353,6 +356,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
 
 
         conclusion["sequence_type"].append("2-classes: "+label)
+        conclusion["seq_size"].append(seq_size)
         conclusion["m_freq_peak_idxs"].append(m_idx)
         conclusion["nc_freq_peak_idxs"].append(nc_idx)
         conclusion["dft_model_scores"].append(dft_model_score)
@@ -379,6 +383,7 @@ if __name__ == "__main__":
 
     conclusions = {
             "sequence_type":[],
+            "seq_size":[],
             "m_freq_peak_idxs":[],
             "nc_freq_peak_idxs":[],
             "dft_model_scores":[],
@@ -463,6 +468,7 @@ if __name__ == "__main__":
     model.save_model(clf,"cossic_histogram_tree.png")
 
     conclusions["sequence_type"].append("Cross-Spectrum Validation 4-classes")
+    conclusions["seq_size"].append(None)
     conclusions["m_freq_peak_idxs"].append(list(set(m1_idxs + m2_idxs)))
     conclusions["nc_freq_peak_idxs"].append(list(set(nc1_idxs  + nc2_idxs)))
     conclusions["dft_model_scores"].append(None)
@@ -595,6 +601,7 @@ if __name__ == "__main__":
 
 
         conclusions["sequence_type"].append("4-classes: "+label)
+        conclusions["seq_size"].append(seq_size)
         conclusions["m_freq_peak_idxs"].append(m_idx)
         conclusions["nc_freq_peak_idxs"].append(nc_idx)
         conclusions["dft_model_scores"].append(dft_model_score)

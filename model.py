@@ -22,8 +22,8 @@ def cross_val_model(X,
     max_accuracy = max(scores)
     for i, (train_index, test_index) in enumerate(cv.split(X)):
         if(scores[i] == max_accuracy):
-            print(f"Fold {i}:")
-            print(f"  Train: index={train_index}")
+            # print(f"Fold {i}:")
+            # print(f"  Train: index={train_index}")
             clf.fit([X[i] for i in train_index],
                [Y[i] for i in train_index])
 
@@ -43,8 +43,10 @@ def confusion_matrix_scorer(clf, X, y):
     # cm = multilabel_confusion_matrix(y, y_pred, labels=class_names)
     # clf_rep = classification_report(y, y_pred, target_names=class_names)
 
-    accuracy = accuracy_score(y, y_pred,)
-    return accuracy
+    accuracy = accuracy_score(y_true=y, y_pred=y_pred)
+    lbl_accuracy = "{:.3f}".format(accuracy)
+    print(f'Accuracy: {lbl_accuracy}')
+    return lbl_accuracy
 
 
 def evaluate_bin_model(X_bins, y_bins, X, Y):

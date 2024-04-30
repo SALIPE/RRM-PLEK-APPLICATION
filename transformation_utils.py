@@ -45,7 +45,7 @@ def collect_bins(sequences,
     # arr_list = np.array(sequences, dtype=np.float32)
     arr_list = np.array(sequences)
     cross_spectral = np.nan_to_num(np.prod(a=arr_list, axis=0))
-    cross_spectral = iou.min_max_norm(cross_spectral)
+    # cross_spectral = iou.min_max_norm(cross_spectral)
     # print(cross_spectral)
 
     # plt.plot(freq,cross_spectral)
@@ -55,13 +55,13 @@ def collect_bins(sequences,
     return cross_spectral
 
 
-def handle_data(sequence_path:str, class_name:str, to_dft:bool=True):
+def handle_data(sequence_path:str, class_name:str, to_dft:bool=True, have_limit:bool=True):
     sequences = iou.buffer_sequences(sequence_path=sequence_path)
 
     rna_sequences: List[Seq] = []
 
     for key in sequences:
-        if(len(rna_sequences)==359):
+        if(have_limit and len(rna_sequences)==359):
             break
         seq = sequences[key]
         rna_sequences.append(seq.seq)
@@ -77,15 +77,15 @@ def handle_data(sequence_path:str, class_name:str, to_dft:bool=True):
     return eiip_sequences, labels
 
 
-def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool, specie:str=""):
+def prepare_data(m_path_loc:str,nc_path_loc:str, to_dft:bool, specie:str="",have_limit:bool=True):
     print("Loading and transforming data...")
    
     # mRNA data
-    Mx, My = handle_data(m_path_loc, "mRNA_"+specie,to_dft)
+    Mx, My = handle_data(m_path_loc, "mRNA_"+specie,to_dft,have_limit)
     print(f'{len(Mx)} sequences -> {"mRNA_"+specie}')
     
     # ncRNA data
-    NCx,NCy = handle_data(nc_path_loc, "ncRNA_"+specie,to_dft)
+    NCx,NCy = handle_data(nc_path_loc, "ncRNA_"+specie,to_dft,have_limit)
     print(f'{len(NCx)} sequences -> {"ncRNA_"+specie}')
 
     return Mx,My,NCx,NCy
