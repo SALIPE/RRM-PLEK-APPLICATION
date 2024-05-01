@@ -13,7 +13,7 @@ import io_utils as iou
 import model
 import transformation_utils as tfu
 
-hist_bins = 256
+hist_bins = 512
 max_freq = 0.5 # aminoacids
 # max_freq = 0.56 # nucleotideo
 intervals = np.linspace(0, max_freq, hist_bins)
@@ -63,9 +63,9 @@ def get_histogram_bins(sequences:List[List[float]],
     # print(f'\n{class_name}Descision Freqs idxs:')
     # print(decision_freq_idx)
 
-    # plt.plot(intervals,histogram)
-    # plt.title(f'Histograma {class_name}\nNumero de Bins (0-{max_freq}): {intervals.size}')
-    # plt.show()
+    plt.plot(intervals,histogram)
+    plt.title(f'Histograma {class_name}\nNumero de Bins (0-{max_freq}): {intervals.size}')
+    plt.show()
 
     return histogram,decision_freq_idx
 
@@ -137,7 +137,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
     y_fft=[*My,*NCy]
     clf, dft_model_score = model.cross_val_model(X=X_fft,Y=y_fft)
     conclusion["dft_model_scores"].append(dft_model_score)
-    # model.save_model(clf,specie+"_dft_model_tree.png")
+    model.save_model(clf,specie+"_dft_model_tree.png")
 
     
     '''
@@ -217,7 +217,7 @@ if __name__ == "__main__":
   
 
     conclusions_df = pd.DataFrame.from_dict(conclusions)
-    conclusions_df.to_csv('conclusions_most_valuable_indexes.csv', index=True) 
+    conclusions_df.to_csv('conclusions_most_valuable_indexes512.csv', index=True) 
     
 
 
