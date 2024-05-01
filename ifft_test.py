@@ -15,14 +15,7 @@ if __name__ == "__main__":
             "m_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia2.txt",
             "nc_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia1.txt"
         }
-
-    Mx,My,NCx,NCy = mn.prepare_dft_data(
-        m_path_loc=file["m_path_loc"],
-        nc_path_loc=file["nc_path_loc"],
-        specie=file["specie"],
-        have_limit=True
-    )
-        
+    
     p_Mx,p_My,p_NCx,p_NCy = mn.prepare_protein_data(
         m_path_loc=file["m_path_loc"],
         nc_path_loc=file["nc_path_loc"],
@@ -30,6 +23,17 @@ if __name__ == "__main__":
         have_limit=True
     )
 
+    min_value = len(min([*p_Mx,*p_NCx], key=len))
+    print(min_value)
+
+    Mx,My,NCx,NCy = mn.prepare_dft_data(
+        m_path_loc=file["m_path_loc"],
+        nc_path_loc=file["nc_path_loc"],
+        specie=file["specie"],
+        seq_size=min_value,
+        have_limit=True
+    )
+        
     X,Y,seq_size,size_ls = mn.evaluate_diff_sequences(
             Mx=Mx,
             My=My,
@@ -69,8 +73,9 @@ if __name__ == "__main__":
     
         
     m_dftseq = X[2]
-    print(Mx[2])
-    pm_dftseq = p_Mx[2][0:len(m_dftseq)]
+    # print(Mx[2])
+    pm_dftseq = p_Mx[2][0:min_value]
+    m_dftseq  = rfft(x=pm_dftseq, n=min_value,)[1:]
 
     print(f'\nIndexes:')
     print(selected_freq_indexes)
@@ -86,7 +91,7 @@ if __name__ == "__main__":
     print(f'\nNew DFT sequence: {len(reconstructed_dft_seq)}\n')
     print(reconstructed_dft_seq)
 
-    reconstructed_seq = irfft(reconstructed_dft_seq, n=len(pm_dftseq))
+    reconstructed_seq = irfft(reconstructed_dft_seq, n=min_value)
     reconstructed_seq = [float("{:.4f}".format(x)) for x in reconstructed_seq]
     reconstructed_seq = np.abs(reconstructed_seq)
    

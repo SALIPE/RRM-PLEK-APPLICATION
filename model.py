@@ -24,8 +24,8 @@ def cross_val_model(X,
         if(scores[i] == max_accuracy):
             # print(f"Fold {i}:")
             # print(f"  Train: index={train_index}")
-            clf.fit([X[i] for i in train_index],
-               [Y[i] for i in train_index])
+            clf.fit([X[ti] for ti in train_index],
+               [Y[ti] for ti in train_index])
 
     return clf, scores
 
@@ -40,13 +40,18 @@ def save_model(model, filename:str):
 def confusion_matrix_scorer(clf, X, y):
     y_pred = clf.predict(X)
     class_names = clf.classes_
-    # cm = multilabel_confusion_matrix(y, y_pred, labels=class_names)
+    cm = confusion_matrix(y, y_pred, labels=class_names)
+
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm,
+                              display_labels=class_names)
+    disp.plot()
+    plt.show()
     # clf_rep = classification_report(y, y_pred, target_names=class_names)
 
-    accuracy = accuracy_score(y_true=y, y_pred=y_pred)
-    lbl_accuracy = "{:.3f}".format(accuracy)
-    print(f'Accuracy: {lbl_accuracy}')
-    return lbl_accuracy
+    # accuracy = accuracy_score(y_true=y, y_pred=y_pred)
+    # lbl_accuracy = "{:.3f}".format(accuracy)
+    # print(f'Accuracy: {lbl_accuracy}')
+    return cm
 
 
 def evaluate_bin_model(X_bins, y_bins, X, Y):
