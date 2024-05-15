@@ -3,6 +3,7 @@ from typing import Dict, List, Union
 import numpy as np
 import numpy.typing as npt
 from Bio import File, SeqIO, SeqRecord
+from Bio.Data.CodonTable import standard_dna_table
 from Bio.Seq import Seq
 
 EIIP_NUCLEOTIDE: Dict[str,float] ={
@@ -35,6 +36,8 @@ EIIP_AMINOACID: Dict[str,float] = {
     'D': 0.1263,
     'X': 0.0000,
     'J': 0.0000,
+    'Z': 0.0000,
+    'B': 0.0000,
     '*': 0.0000
 }
 AMINOACID_MAP: Dict[str,List[str]]={
@@ -86,7 +89,7 @@ AMINOACID_MAP: Dict[str,List[str]]={
 
 def translate(seq: str) -> str:
     sequence = Seq(seq)
-    return str(sequence.translate()).replace('*', '').replace('X', '').replace('J', '')
+    return str(sequence.translate()).replace('*', '')
 
 def create_aminoacid_map()->Dict[str,str]:
     amn_map = {}

@@ -1,13 +1,13 @@
 import bisect
-import math
-import pickle
 from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from Bio import SeqIO
 from Bio.Seq import Seq
 from scipy.fft import rfft, rfftfreq
+from sklearn.model_selection import train_test_split
 
 import io_utils as iou
 import model
@@ -65,6 +65,7 @@ def get_histogram_bins(sequences:List[List[float]],
 
     plt.plot(intervals,histogram)
     plt.title(f'Histograma {class_name}\nNumero de Bins (0-{max_freq}): {intervals.size}')
+    plt.xlabel("FREQUENCY")
     plt.show()
 
     return histogram,decision_freq_idx
@@ -124,20 +125,30 @@ def single_specie_valuate(file:dict, conclusion:dict):
     most_id_idxs = list(set(m_idxs + nc_idxs))
     most_id_idxs.sort()
 
+    conclusion["frequences"].append(np.array(intervals)[most_id_idxs])
+
     norm_Mx = normalize_sequences_to_bins(Mx)
     norm_NCx = normalize_sequences_to_bins(NCx)
+
+    X_fft=[*norm_Mx,*norm_NCx]
+    y_fft=[*My,*NCy]
 
     '''
     Training with normalize spectre 0-1 for n-bins size,
     for classify by dft.
 
     '''
+
     print(f'\n{specie} - Valuating DFT model...')
-    X_fft=[*norm_Mx,*norm_NCx]
-    y_fft=[*My,*NCy]
-    clf, dft_model_score = model.cross_val_model(X=X_fft,Y=y_fft)
+    
+    X_train, X_test, y_train, y_test = train_test_split(
+     X_fft, y_fft, test_size=0.3, random_state=42)
+    
+    clf, dft_model_score = model.cross_val_model(X=X_train,Y=y_train)
     conclusion["dft_model_scores"].append(dft_model_score)
-    model.save_model(clf,specie+"_dft_model_tree.png")
+    conclusion["acc_fft"].append(model.confusion_matrix_scorer(clf, X_test, y_test))
+
+    # model.save_model(clf,specie+"_dft_model_tree.png")
 
     
     '''
@@ -148,40 +159,43 @@ def single_specie_valuate(file:dict, conclusion:dict):
     print(f'\n{specie} - Valuating most valuables indexes...')
     X_most_valuable=[np.array(fft)[most_id_idxs] for fft in X_fft]
 
-    clf, cosic_model_score = model.cross_val_model(X=X_most_valuable,Y=y_fft)
+    X_train, X_test, y_train, y_test = train_test_split(
+     X_most_valuable, y_fft, test_size=0.3, random_state=42)
+
+    clf, cosic_model_score = model.cross_val_model(X=X_train,Y=y_train)
     conclusion["cossic_model_score"].append(cosic_model_score)
-    model.save_model(clf,specie+"_most_valuable_tree.png")
-    model.confusion_matrix_scorer(clf, X_most_valuable, y_fft)
+    # model.save_model(clf,specie+"_most_valuable_tree.png")
+    conclusion["acc_mv"].append(model.confusion_matrix_scorer(clf, X_test, y_test))
     '''
     Training only with the protein eiip sequences
 
     '''
-    p_Mx,p_My,p_NCx,p_NCy = prepare_protein_data(
-        m_path_loc=file["m_path_loc"],
-        nc_path_loc=file["nc_path_loc"],
-        specie=specie)
+    # p_Mx,p_My,p_NCx,p_NCy = prepare_protein_data(
+    #     m_path_loc=file["m_path_loc"],
+    #     nc_path_loc=file["nc_path_loc"],
+    #     specie=specie)
 
-    seqs = [*p_Mx,*p_NCx]
-    p_y = np.array([*p_My,*p_NCy])
+    # seqs = [*p_Mx,*p_NCx]
+    # p_y = np.array([*p_My,*p_NCy])
 
-    eiip_zip:List[List[float]] = []
+    # eiip_zip:List[List[float]] = []
 
-    min_len = len(min(seqs,key=len))
-    mean_value = np.mean([len(i) for i in seqs])
-    std_value = np.std([len(i) for i in seqs])
-    mean_len = int(mean_value + std_value)
+    # min_len = len(min(seqs,key=len))
+    # mean_value = np.mean([len(i) for i in seqs])
+    # std_value = np.std([len(i) for i in seqs])
+    # mean_len = int(mean_value + std_value)
 
-    for eiip_seq in seqs:
-        t = mean_len - len(eiip_seq)
-        if(t>0):
-            eiip_seq = np.pad(eiip_seq, pad_width=(0, t), mode='constant')
-        eiip_zip.append(eiip_seq[0:mean_len])
+    # for eiip_seq in seqs:
+    #     t = mean_len - len(eiip_seq)
+    #     if(t>0):
+    #         eiip_seq = np.pad(eiip_seq, pad_width=(0, t), mode='constant')
+    #     eiip_zip.append(eiip_seq[0:mean_len])
 
-    eiip_zip = np.array(eiip_zip,dtype=np.float32)
+    # eiip_zip = np.array(eiip_zip,dtype=np.float32)
 
-    print(f'\n{specie} - Valuating EIIP model...')
-    clf, protein_model_score = model.cross_val_model(X=eiip_zip, Y=p_y)
-    conclusion["protein_model_score"].append(protein_model_score)
+    # print(f'\n{specie} - Valuating EIIP model...')
+    # clf, protein_model_score = model.cross_val_model(X=eiip_zip, Y=p_y)
+    conclusion["protein_model_score"].append(None)
     # model.save_model(clf,label+"protein_model_tree.png")
 
 
@@ -198,26 +212,94 @@ if __name__ == "__main__":
             "specie":"Macaca_mulatta",
             "m_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia1.txt",
             "nc_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia2.txt"
+        },
+        {
+            "specie":"Bos_taurus",
+            "m_path_loc":"..\dataset-plek\Bos_taurus\sequencia2.txt",
+            "nc_path_loc":"..\dataset-plek\Bos_taurus\sequencia1.txt"
+        },
+        {
+            "specie":"Danio_rerio",
+            "m_path_loc":"..\dataset-plek\Danio_rerio\sequencia2.txt",
+            "nc_path_loc":"..\dataset-plek\Danio_rerio\sequencia1.txt"
+        },
+        {
+            "specie":"Mus_musculus",
+            "m_path_loc":"..\dataset-plek\Mus_musculus\sequencia2.txt",
+            "nc_path_loc":"..\dataset-plek\Mus_musculus\sequencia1.txt"
+        },
+        {
+            "specie":"Pan_troglodytes",
+            "m_path_loc":"..\dataset-plek\Pan_troglodytes\sequencia1.txt",
+            "nc_path_loc":"..\dataset-plek\Pan_troglodytes\sequencia2.txt"
+        },
+        {
+            "specie":"Pongo_abelii",
+            "m_path_loc":"..\dataset-plek\Pongo_abelii\sequencia1.txt",
+            "nc_path_loc":"..\dataset-plek\Pongo_abelii\sequencia2.txt"
+        },
+        {
+            "specie":"Sus_scrofa",
+            "m_path_loc":"..\dataset-plek\Sus_scrofa\sequencia1.txt",
+            "nc_path_loc":"..\dataset-plek\Sus_scrofa\sequencia2.txt"
+        },
+          {
+            "specie":"Xenopus_tropicalis",
+            "m_path_loc":"..\dataset-plek\Xenopus_tropicalis\sequencia2.txt",
+            "nc_path_loc":"..\dataset-plek\Xenopus_tropicalis\sequencia1.txt"
         }
     ]
 
     conclusions = {
             "sequence_type":[],
             "seq_size":[],
+            "acc_fft":[],
+            "acc_mv":[],
             "m_freq_peak_idxs":[],
             "nc_freq_peak_idxs":[],
+            "frequences":[],
             "dft_model_scores":[],
             "protein_model_score":[],
             "cossic_model_score":[]
         }
     
     for file in files:
-        single_specie_valuate(file, conclusion=conclusions)
+
+        filenames=[
+            file["m_path_loc"],
+            file["nc_path_loc"]
+        ]
+        print(f'\n {file["specie"]}')
+        print("mRNA values:")
+        seqs_len = []
+        with open( file["m_path_loc"]) as handle:
+            for record in SeqIO.parse(handle, "fasta"):
+                seqs_len.append(len(record.seq))
+                
+        seqs_mean = np.mean(seqs_len)
+        seqs_sd = np.std(seqs_len)
+        print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
+
+        print("ncRNA values:")
+        seqs_len = []
+        with open( file["nc_path_loc"]) as handle:
+            for record in SeqIO.parse(handle, "fasta"):
+                seqs_len.append(len(record.seq))
+                
+        seqs_mean = np.mean(seqs_len)
+        seqs_sd = np.std(seqs_len)
+        print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
+
+          
+            # variation = seqs_sd/seqs_mean
+            # seqs_min = min(seqs_len)
+            # seqs_max = max(seqs_len)
+        # single_specie_valuate(file, conclusion=conclusions)
     
   
 
-    conclusions_df = pd.DataFrame.from_dict(conclusions)
-    conclusions_df.to_csv('conclusions_most_valuable_indexes512.csv', index=True) 
+    # conclusions_df = pd.DataFrame.from_dict(conclusions)
+    # conclusions_df.to_csv('conclusions_most_valuable_indexes5122.csv', index=True) 
     
 
 
