@@ -44,6 +44,8 @@ def translate(seq: str) -> str:
     sequence = Seq(seq)
     return str(sequence.translate()).replace('*', '')
 
+
+
 def get_eiip(seq: SeqRecord.SeqRecord, step: int, translate_seq: bool = False):
     seq_translate = seq
     eiip_seq = []
@@ -81,7 +83,7 @@ def element_wise_product(data):
 
 def test():
     # parametros
-    dir_path = r'/home/matheus/Dropbox/08_packages/07_BASiNET_v2/data/100_seq'
+    dir_path =""
     step = 1
     hist_bins = 100
     # max_freq = 0.5 # aminoacids

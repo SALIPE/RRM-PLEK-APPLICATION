@@ -26,9 +26,22 @@ def element_wise_product(dft_list:List[List[float]])->List[float]:
 
     return res
 
+def internal_prod(lst:List[float])->float:
+
+    if(len(lst)==0):
+        return 0.
+    
+    res = lst[0]
+    for b in lst[1:]:
+        if(np.isinf(np.multiply(res,b))):
+            break
+        res = np.multiply(res,b)
+
+    return res
+
 def to_fft_collection(sequences:List[Seq],seq_size:int=None)->List[List[float]]:
   
-    amn_values = iou.to_aminoacid_char_value([seq for seq in sequences])
+    amn_values = iou.to_nucleotide_char_value([seq for seq in sequences])
     coeff_FFT_zip = []
 
     for pseq in amn_values:
@@ -57,7 +70,7 @@ def handle_data(sequence_path:str, class_name:str, to_dft:bool=True,seq_size:int
     if to_dft:
         eiip_sequences = to_fft_collection(sequences=rna_sequences,seq_size=seq_size)
     else:
-        eiip_sequences = iou.to_aminoacid_char_value(rna_sequences)
+        eiip_sequences = iou.to_nucleotide_char_value(rna_sequences)
 
     labels =  [class_name for i in eiip_sequences]
     return eiip_sequences, labels

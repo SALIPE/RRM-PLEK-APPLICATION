@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, Union
 
 import numpy as np
@@ -10,6 +11,7 @@ EIIP_NUCLEOTIDE: Dict[str,float] ={
     "A":0.1260,
     "G":0.0806,
     "T":0.1335,
+    "U":0.0289,
     "C":0.1340,
 }
 
@@ -91,6 +93,12 @@ def translate(seq: str) -> str:
     sequence = Seq(seq)
     return str(sequence.translate()).replace('*', '')
 
+def transcribe(seq: str) -> str:
+    sequence = re.sub(r'[^ACTG]', '', str(seq))
+    sequence = Seq(sequence)
+    return str(sequence.transcribe())
+    # return sequence
+
 def create_aminoacid_map()->Dict[str,str]:
     amn_map = {}
     for k, v in AMINOACID_MAP.items():
@@ -121,18 +129,20 @@ def find_sequences(seq_path: str) -> npt.ArrayLike:
     return file_sequences
 
 
-def nucleotide_map(seq:str)-> npt.ArrayLike:
-    return [EIIP_NUCLEOTIDE[char] for char in seq]
+def nucleotide_map(seq:str)-> List[float]:
+    dna_char = transcribe(seq)
+    return [EIIP_NUCLEOTIDE[char] for char in dna_char]
 
 def aminoacid_map(seq:str)-> List[float]:
     # amin_char = [AMINOACIDS[seq[i:i+3]] for i in range(0, len(seq), 3)]
     amin_char = translate(seq)
+    print(amin_char)
     return  [EIIP_AMINOACID[char] for char in amin_char]
 
 def rna_aminoacid_map(seq:str)-> List[float]:
     return  [EIIP_AMINOACID[char] for char in seq]
      
-def to_nucleotide_char_value(seq_list: npt.ArrayLike)-> npt.ArrayLike:
+def to_nucleotide_char_value(seq_list: npt.ArrayLike)->  List[float]:
      return [nucleotide_map(seq) for seq in seq_list]
 
 def to_aminoacid_char_value(seq_list: npt.ArrayLike)-> List[List[float]]:
@@ -143,8 +153,9 @@ def rna_to_aminoacid_char_value(seq_list: npt.ArrayLike)-> List[List[float]]:
 
 def min_max_norm(x:List[float])->List[float]:
     # Min-Max Normalization
-    min_val = np.min(x)
-    max_val = np.max(x)
+    fixed_value = np.nan_to_num(x)
+    min_val = np.min(fixed_value)
+    max_val = np.max(fixed_value)
     normalized_data = (x - min_val) / np.nan_to_num(max_val - min_val)
 
     return normalized_data

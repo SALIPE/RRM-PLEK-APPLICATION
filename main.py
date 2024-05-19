@@ -14,8 +14,8 @@ import model
 import transformation_utils as tfu
 
 hist_bins = 512
-max_freq = 0.5 # aminoacids
-# max_freq = 0.56 # nucleotideo
+# max_freq = 0.5 # aminoacids
+max_freq = 0.56 # nucleotideo
 intervals = np.linspace(0, max_freq, hist_bins)
 
 def prepare_dft_data(m_path_loc:str,
@@ -45,13 +45,14 @@ def get_histogram_bins(sequences:List[List[float]],
 
     for eiip_seq in sequences:
             freq_hist = rfftfreq((len(eiip_seq)*2)-1, d=1)
+            # norm = iou.min_max_norm(eiip_seq)
             fft_freq = [(fft,freqs) for fft, freqs in zip(eiip_seq,freq_hist)]
             
             for val in fft_freq:
                 hist[bisect.bisect(intervals, val[1])-1].append(abs(val[0]))
     ### histogram
     for lst in hist:
-        histogram.append(np.prod(lst))
+        histogram.append(tfu.internal_prod(lst))
 
     histogram = iou.min_max_norm(histogram)
 
@@ -63,10 +64,11 @@ def get_histogram_bins(sequences:List[List[float]],
     # print(f'\n{class_name}Descision Freqs idxs:')
     # print(decision_freq_idx)
 
-    plt.plot(intervals,histogram)
-    plt.title(f'Histograma {class_name}\nNumero de Bins (0-{max_freq}): {intervals.size}')
-    plt.xlabel("FREQUENCY")
-    plt.show()
+    # plt.plot(intervals,histogram)
+    # plt.title(f'Histograma {class_name}\nNumero de Bins (0-{max_freq}): {intervals.size}')
+    # plt.xlabel("FREQUENCY")
+    # # plt.xlim([0,max_freq])
+    # plt.show()
 
     return histogram,decision_freq_idx
 
@@ -88,6 +90,7 @@ def to_histogram_bins(fft_seq:List[float]):
     histogram = iou.min_max_norm(histogram)
     # plt.plot(intervals,histogram)
     # plt.title(f'Histograma individual')
+    # # plt.xlim([0,max_freq])
     # plt.show()
 
     return histogram
@@ -124,6 +127,7 @@ def single_specie_valuate(file:dict, conclusion:dict):
     
     most_id_idxs = list(set(m_idxs + nc_idxs))
     most_id_idxs.sort()
+    conclusion["N"].append(len(most_id_idxs))
 
     conclusion["frequences"].append(np.array(intervals)[most_id_idxs])
 
@@ -166,41 +170,81 @@ def single_specie_valuate(file:dict, conclusion:dict):
     conclusion["cossic_model_score"].append(cosic_model_score)
     # model.save_model(clf,specie+"_most_valuable_tree.png")
     conclusion["acc_mv"].append(model.confusion_matrix_scorer(clf, X_test, y_test))
-    '''
-    Training only with the protein eiip sequences
 
-    '''
-    # p_Mx,p_My,p_NCx,p_NCy = prepare_protein_data(
-    #     m_path_loc=file["m_path_loc"],
-    #     nc_path_loc=file["nc_path_loc"],
-    #     specie=specie)
-
-    # seqs = [*p_Mx,*p_NCx]
-    # p_y = np.array([*p_My,*p_NCy])
-
-    # eiip_zip:List[List[float]] = []
-
-    # min_len = len(min(seqs,key=len))
-    # mean_value = np.mean([len(i) for i in seqs])
-    # std_value = np.std([len(i) for i in seqs])
-    # mean_len = int(mean_value + std_value)
-
-    # for eiip_seq in seqs:
-    #     t = mean_len - len(eiip_seq)
-    #     if(t>0):
-    #         eiip_seq = np.pad(eiip_seq, pad_width=(0, t), mode='constant')
-    #     eiip_zip.append(eiip_seq[0:mean_len])
-
-    # eiip_zip = np.array(eiip_zip,dtype=np.float32)
-
-    # print(f'\n{specie} - Valuating EIIP model...')
-    # clf, protein_model_score = model.cross_val_model(X=eiip_zip, Y=p_y)
-    conclusion["protein_model_score"].append(None)
     # model.save_model(clf,label+"protein_model_tree.png")
 
+def toymodel():
 
+    # m_gorilla1='ATGTACCTCTTTTCTCTAGGCTCAGAGTCCCCCAAAGGGGCCATTGGCCACATTGTCCCTACTGAGAAGACCATTCTGGCTGTAGAGAGGAACAAAGTGCTGCTGCCTCCTCTCTGGAACAGGACCTTCAGCTGGGGCTTTGATGACTTCAGCTGCTGCTTGGGGAGCTACGGCTCCGACAAGGTCCTGATGACATTCGAGAACCTGGCTGCCTGGGGCCGCTGTCTGTGCGCCGTGTGCCCGTCCCCAACAATGATTGTCACCTCTGGGACCAGCACTGTGGTGTGTGTGTGGGAGCTCAGCATGACCAAAGGCCGCCCGAGGGGCTTGCGCCTCCAGCAG'
+    # m_gorilla2='ATGGCGCACTCGGCTGCCGCCGTGCCGCTGGGCGCGCTGGAGCAGGGCTGCCCCATCCGCGTGGAGCACGACCGGAGGAGGGCTTACCTGTCTCCACAACCCCCAGGATGTCATGACCGGGCCGTCCTGCTCTATGAGTACGTGGGCAAGCGGATCGTGGACCTGCAGCACACCGAGGTCCCAGATGCCTACCGTGGGCGTGGCATCGCCAAGCACCTTGCCAAGGCCGCCCTGGACTTCGTGGTGGAGGAGGACCTGAAGGCCCATCTCACCTGCTGGTACATCCAGAAGTACGTCAAGGAGAACCCCCTGCCGCAGTACCTGGAGCGCCTGCAGCCGTAA'
+    m_gorilla1='ATGAAATTATTGACAACCATATGTAGACTGAAGCTTGAAAAAATGTACTCAAAGACAAATACATCTTCCACAATATCTGAAAAGGCCTGACATGGGACAGAGAAAATCAGCACAGCCAGAAGTGAGGGGCACCATATCACCTTTAGTAGGTGGAAGGCATGTACAGCGATTGGAGGTCGATGTAAAAATCAATGTGATGATAGTGAATTTAGGATTTCATACTGTGCAAGACCTACAACTCGTTGCTGCGTGACAGAATGTGACCCTATGGACCCAAATAATTGGATCCCAAAGGACTCAGTAGGGACTCAAGAATGGTACCCTAAAGACTCACGTCATTGA'
+    m_gorilla2='ACCAACGCCGTGGCGCACGTGGATGACATGCCCAACGCGCTGTCCGCCCTGAGCGACCTGCACGCGCACAAGCTTCGGGTGGACCCGGTCAACTTCAAGCTCCTAAGCCACTGCCTGCTGGTGACCCTGGCCGCCCACCTCCCCGCCGAGTTCACCCCTGCGGTGCACGCCTCCCTGGACAAGTTCCTGGCTTCTGTGAGCACCGTGCTGACCTCCAAATACCGTTAAGCTGGAGACTCGCTGGCCGTTCCTCCTGCCCGCTGGGCCTCCCAACGGGCCCTCTTCCCCTTCCTGCACCCGTACCCCCCTGGTCTTTGAATAAAGTCTGAGTGGGCGGCAGCC'
+    
+    # nc_gorilla1 = 'AAGACTATATTTTCAGGGATCATTTCTACAGTGCACTACTAGAGAAGTTTCTGTGAACTTGTAGAGCACCGGAAACCATGAGCAGGAAGTGCAGCGTTCTCTCCTGAGCATGAAGCCGGCTCTTGGTGTGGCTTCGCTGCAACTGCCATTGGCCATTGATGATCGTTCTTCTCTTCTCTGGGACAGTAAGAGAGAGAGGACACAGTCTGAGTGG'
+    # nc_gorilla2 = 'AAGATTATACTTTCAGTGATCTTTTTTTAGTTTGTTACTAGAAAAGTGTCTCTGAACCTGGAGAGCACCAGAAACCATGAGGAGGAGATGTAGCGCTCTCTCCTGAGCTTAAAGCTGGCTCTTGCTTTTGCTTTGCTGCAACTGCTTTTTGCCATTGATGATCATTCTTCTCTTCCTCCTGGGAAGTAAGAGAGAGAAGATGCAGCACGAATGG'
+
+   
+    print(len(m_gorilla1))
+
+    eiip1 = iou.aminoacid_map(m_gorilla1)
+
+    freq_hist = rfftfreq(len(eiip1), d=1)
+
+    plt.plot(eiip1)
+    plt.ylabel("EIIP")
+    plt.xlabel("SEQUENCE")
+    plt.show()
+
+    fft1 = rfft(x=eiip1)
+    fft1 = np.abs(fft1)[1:]
+    fft1_norm = iou.min_max_norm(fft1)
+
+    fft_freq = [freqs for fft, freqs in zip(fft1,freq_hist)]
+
+    plt.plot(fft_freq,fft1_norm)
+    plt.xlabel("FREQUENCY")
+    plt.show()
+    
+  
+    eiip2 = iou.aminoacid_map(m_gorilla2)
+
+    
+
+    plt.plot(eiip2)
+    plt.ylabel("EIIP")
+    plt.xlabel("SEQUENCE")
+    plt.show()
+
+    fft2 = rfft(x=eiip2)
+    fft2 = np.abs(fft2)[1:]
+    fft2_norm = iou.min_max_norm(fft2)
+
+    fft_freq = [freqs for fft, freqs in zip(fft2,freq_hist)]
+
+
+    plt.plot(fft_freq,fft2_norm)
+    plt.xlabel("FREQUENCY")
+    plt.show()
+
+   
+    cs = tfu.element_wise_product([fft1,fft2])
+    cs_norm = iou.min_max_norm(cs)
+
+    plt.plot(fft_freq,cs_norm)
+    plt.xlabel("FREQUENCY")
+    plt.show()
+    
+    # sequences = iou.buffer_sequences(sequence_path="..\dataset-plek\Gorilla_gorilla\sequencia2.txt")
+
+
+    # for key in sequences:
+    #     seq = sequences[key]
+      
+    #     if(len(seq.seq) == len(m_gorilla1)):
+    #         print(seq.seq)
 
 if __name__ == "__main__":
+    # toymodel()
 
     files =[
         {
@@ -255,51 +299,53 @@ if __name__ == "__main__":
             "seq_size":[],
             "acc_fft":[],
             "acc_mv":[],
+            "N":[],
             "m_freq_peak_idxs":[],
             "nc_freq_peak_idxs":[],
             "frequences":[],
             "dft_model_scores":[],
-            "protein_model_score":[],
             "cossic_model_score":[]
         }
     
     for file in files:
-
-        filenames=[
-            file["m_path_loc"],
-            file["nc_path_loc"]
-        ]
-        print(f'\n {file["specie"]}')
-        print("mRNA values:")
-        seqs_len = []
-        with open( file["m_path_loc"]) as handle:
-            for record in SeqIO.parse(handle, "fasta"):
-                seqs_len.append(len(record.seq))
+        single_specie_valuate(file, conclusion=conclusions)
+        conclusions_df = pd.DataFrame.from_dict(conclusions)
+        conclusions_df.to_csv('conclusions_most_valuable_rnaseq.csv', index=True) 
+    #     # filenames=[
+    #     #     file["m_path_loc"],
+    #     #     file["nc_path_loc"]
+    #     # ]
+        
+    #     # print(f'\n {file["specie"]}')
+    #     # print("mRNA values:")
+    #     # seqs_len = []
+    #     # with open( file["m_path_loc"]) as handle:
+    #     #     for record in SeqIO.parse(handle, "fasta"):
+    #     #         seqs_len.append(len(record.seq))
                 
-        seqs_mean = np.mean(seqs_len)
-        seqs_sd = np.std(seqs_len)
-        print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
+    #     # seqs_mean = np.mean(seqs_len)
+    #     # seqs_sd = np.std(seqs_len)
+    #     # print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
 
-        print("ncRNA values:")
-        seqs_len = []
-        with open( file["nc_path_loc"]) as handle:
-            for record in SeqIO.parse(handle, "fasta"):
-                seqs_len.append(len(record.seq))
+    #     # print("ncRNA values:")
+    #     # seqs_len = []
+    #     # with open( file["nc_path_loc"]) as handle:
+    #     #     for record in SeqIO.parse(handle, "fasta"):
+    #     #         seqs_len.append(len(record.seq))
                 
-        seqs_mean = np.mean(seqs_len)
-        seqs_sd = np.std(seqs_len)
-        print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
+    #     # seqs_mean = np.mean(seqs_len)
+    #     # seqs_sd = np.std(seqs_len)
+    #     # print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
 
           
-            # variation = seqs_sd/seqs_mean
-            # seqs_min = min(seqs_len)
-            # seqs_max = max(seqs_len)
-        # single_specie_valuate(file, conclusion=conclusions)
+    #         # variation = seqs_sd/seqs_mean
+    #         # seqs_min = min(seqs_len)
+    #         # seqs_max = max(seqs_len)
+    
     
   
 
-    # conclusions_df = pd.DataFrame.from_dict(conclusions)
-    # conclusions_df.to_csv('conclusions_most_valuable_indexes5122.csv', index=True) 
+  
     
 
 

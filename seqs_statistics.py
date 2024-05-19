@@ -1,9 +1,7 @@
-from Bio import SeqIO
 import numpy as np
+from Bio import SeqIO
 
-# file_name = r'/home/matheus/Documents/viruses_dataset/DENV/variants/DENV.fasta'
-# file_name = r'/home/matheus/Documents/viruses_dataset/HIV/variants/HIV.fasta'
-file_name = r'/home/matheus/Documents/viruses_dataset/SARS-CoV-2/variants/SARS-CoV-2.fasta'
+file_name = ""
 
 seqs_len = []
 with open(file_name) as handle:
