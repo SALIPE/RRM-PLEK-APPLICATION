@@ -1,14 +1,8 @@
-
-
-import bisect
 from typing import List
 
-import matplotlib.pyplot as plt
 import numpy as np
-import numpy.typing as npt
 from Bio.Seq import Seq
-from numpy import absolute, array
-from scipy.fft import irfft, rfft, rfftfreq
+from scipy.fft import rfft
 
 import io_utils as iou
 
@@ -39,9 +33,11 @@ def internal_prod(lst:List[float])->float:
 
     return res
 
-def to_fft_collection(sequences:List[Seq],seq_size:int=None)->List[List[float]]:
+def to_fft_collection(sequences:List[Seq],
+                      seq_size:int=None)->List[List[float]]:
   
-    amn_values = iou.to_nucleotide_char_value([seq for seq in sequences])
+    # amn_values = iou.to_nucleotide_char_value([seq for seq in sequences])
+    amn_values = iou.to_aminoacid_char_value([seq for seq in sequences])
     coeff_FFT_zip = []
 
     for pseq in amn_values:
@@ -55,7 +51,10 @@ def to_fft_collection(sequences:List[Seq],seq_size:int=None)->List[List[float]]:
 
 
 
-def handle_data(sequence_path:str, class_name:str, to_dft:bool=True,seq_size:int=None):
+def handle_data(sequence_path:str,
+                class_name:str, 
+                to_dft:bool=True,
+                seq_size:int=None):
     sequences = iou.buffer_sequences(sequence_path=sequence_path)
 
     rna_sequences: List[Seq] = []
@@ -70,7 +69,8 @@ def handle_data(sequence_path:str, class_name:str, to_dft:bool=True,seq_size:int
     if to_dft:
         eiip_sequences = to_fft_collection(sequences=rna_sequences,seq_size=seq_size)
     else:
-        eiip_sequences = iou.to_nucleotide_char_value(rna_sequences)
+        eiip_sequences = iou.to_aminoacid_char_value(rna_sequences)
+        # eiip_sequences = iou.to_nucleotide_char_value(rna_sequences)
 
     labels =  [class_name for i in eiip_sequences]
     return eiip_sequences, labels

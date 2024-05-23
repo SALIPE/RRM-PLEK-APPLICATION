@@ -53,7 +53,7 @@ def confusion_matrix_scorer(clf, X, y):
     # accuracy = accuracy_score(y_true=y, y_pred=y_pred)
     # lbl_accuracy = "{:.3f}".format(accuracy)
     # print(f'Accuracy: {lbl_accuracy}')
-    return json.dumps(clf_rep)
+    return clf_rep
 
 
 def evaluate_bin_model(X_bins, y_bins, X, Y):

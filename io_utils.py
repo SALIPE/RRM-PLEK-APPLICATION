@@ -136,7 +136,6 @@ def nucleotide_map(seq:str)-> List[float]:
 def aminoacid_map(seq:str)-> List[float]:
     # amin_char = [AMINOACIDS[seq[i:i+3]] for i in range(0, len(seq), 3)]
     amin_char = translate(seq)
-    print(amin_char)
     return  [EIIP_AMINOACID[char] for char in amin_char]
 
 def rna_aminoacid_map(seq:str)-> List[float]:

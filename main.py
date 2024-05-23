@@ -4,8 +4,6 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from Bio import SeqIO
-from Bio.Seq import Seq
 from scipy.fft import rfft, rfftfreq
 from sklearn.model_selection import train_test_split
 
@@ -14,8 +12,8 @@ import model
 import transformation_utils as tfu
 
 hist_bins = 512
-# max_freq = 0.5 # aminoacids
-max_freq = 0.56 # nucleotideo
+max_freq = 0.5 # aminoacids
+# max_freq = 0.56 # nucleotideo
 intervals = np.linspace(0, max_freq, hist_bins)
 
 def prepare_dft_data(m_path_loc:str,
@@ -104,16 +102,17 @@ def normalize_sequences_to_bins(sequences:List[List[float]])->List[List[float]]:
     return histograms
 
     
-def single_specie_valuate(file:dict, conclusion:dict):
+def single_specie_valuate(root:str,
+                          file:dict, 
+                          conclusion:dict):
     specie:str = file["specie"]
 
     conclusion["sequence_type"].append(specie)
-    conclusion["seq_size"].append(hist_bins)
 
     print(f'\n{specie} - Getting FFT data...')
     Mx,My,NCx,NCy = prepare_dft_data(
-        m_path_loc=file["m_path_loc"],
-        nc_path_loc=file["nc_path_loc"],
+        m_path_loc=root+file["m_path_loc"],
+        nc_path_loc=root+file["nc_path_loc"],
         specie=specie)
         
     m_hist_bins,m_idxs = get_histogram_bins(sequences=Mx, 
@@ -245,58 +244,101 @@ def toymodel():
 
 if __name__ == "__main__":
     # toymodel()
+    plek_root = '..\datasets\dataset-plek'
+    cpc2_root = '..\datasets\CPC2'
 
-    files =[
+    plek_files =[
         {
             "specie":"Gorilla_gorilla",
-            "m_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia2.txt",
-            "nc_path_loc":"..\dataset-plek\Gorilla_gorilla\sequencia1.txt"
+            "m_path_loc":"\Gorilla_gorilla\sequencia2.txt",
+            "nc_path_loc":"\Gorilla_gorilla\sequencia1.txt"
         },
         {
             "specie":"Macaca_mulatta",
-            "m_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia1.txt",
-            "nc_path_loc":"..\dataset-plek\Macaca_mulatta\sequencia2.txt"
+            "m_path_loc":"\Macaca_mulatta\sequencia1.txt",
+            "nc_path_loc":"\Macaca_mulatta\sequencia2.txt"
         },
         {
             "specie":"Bos_taurus",
-            "m_path_loc":"..\dataset-plek\Bos_taurus\sequencia2.txt",
-            "nc_path_loc":"..\dataset-plek\Bos_taurus\sequencia1.txt"
+            "m_path_loc":"\Bos_taurus\sequencia2.txt",
+            "nc_path_loc":"\Bos_taurus\sequencia1.txt"
         },
         {
             "specie":"Danio_rerio",
-            "m_path_loc":"..\dataset-plek\Danio_rerio\sequencia2.txt",
-            "nc_path_loc":"..\dataset-plek\Danio_rerio\sequencia1.txt"
+            "m_path_loc":"\Danio_rerio\sequencia2.txt",
+            "nc_path_loc":"\Danio_rerio\sequencia1.txt"
         },
         {
             "specie":"Mus_musculus",
-            "m_path_loc":"..\dataset-plek\Mus_musculus\sequencia2.txt",
-            "nc_path_loc":"..\dataset-plek\Mus_musculus\sequencia1.txt"
+            "m_path_loc":"\Mus_musculus\sequencia2.txt",
+            "nc_path_loc":"\Mus_musculus\sequencia1.txt"
         },
         {
             "specie":"Pan_troglodytes",
-            "m_path_loc":"..\dataset-plek\Pan_troglodytes\sequencia1.txt",
-            "nc_path_loc":"..\dataset-plek\Pan_troglodytes\sequencia2.txt"
+            "m_path_loc":"\Pan_troglodytes\sequencia1.txt",
+            "nc_path_loc":"\Pan_troglodytes\sequencia2.txt"
         },
         {
             "specie":"Pongo_abelii",
-            "m_path_loc":"..\dataset-plek\Pongo_abelii\sequencia1.txt",
-            "nc_path_loc":"..\dataset-plek\Pongo_abelii\sequencia2.txt"
+            "m_path_loc":"\Pongo_abelii\sequencia1.txt",
+            "nc_path_loc":"\Pongo_abelii\sequencia2.txt"
         },
         {
             "specie":"Sus_scrofa",
-            "m_path_loc":"..\dataset-plek\Sus_scrofa\sequencia1.txt",
-            "nc_path_loc":"..\dataset-plek\Sus_scrofa\sequencia2.txt"
+            "m_path_loc":"\Sus_scrofa\sequencia1.txt",
+            "nc_path_loc":"\Sus_scrofa\sequencia2.txt"
         },
           {
             "specie":"Xenopus_tropicalis",
-            "m_path_loc":"..\dataset-plek\Xenopus_tropicalis\sequencia2.txt",
-            "nc_path_loc":"..\dataset-plek\Xenopus_tropicalis\sequencia1.txt"
+            "m_path_loc":"\Xenopus_tropicalis\sequencia2.txt",
+            "nc_path_loc":"\Xenopus_tropicalis\sequencia1.txt"
         }
     ]
 
+    cpc2_files = [
+        {
+            "specie":"Arabidopsis_thaliana",
+            "m_path_loc":"\\arabidopsis\mRNA.fasta",
+            "nc_path_loc":"\\arabidopsis\lncRNA.fasta"
+        },
+         {
+            "specie":"Drosophila_melanogaster",
+            "m_path_loc":"\\fruitfly\mRNA.fasta",
+            "nc_path_loc":"\\fruitfly\lncRNA.fasta"
+        },
+         {
+            "specie":"Homo_sapiens",
+            "m_path_loc":"\human\mRNA.fasta",
+            "nc_path_loc":"\human\lncRNA.fasta"
+        },
+         {
+            "specie":"Mus_musculus",
+            "m_path_loc":"\mouse\mRNA.fasta",
+            "nc_path_loc":"\mouse\lncRNA.fasta"
+        },
+         {
+            "specie":"Rattus_norvegicus",
+            "m_path_loc":"\\rat\mRNA.fasta",
+            "nc_path_loc":"\\rat\lncRNA.fasta"
+        },
+         {
+            "specie":"Oryza_sativa_japonica",
+            "m_path_loc":"\\rice\mRNA.fasta",
+            "nc_path_loc":"\\rice\lncRNA.fasta"
+        },
+         {
+            "specie":"Caenorhabditis_elegans",
+            "m_path_loc":"\worm\mRNA.fasta",
+            "nc_path_loc":"\worm\lncRNA.fasta"
+        },
+         {
+            "specie":"Danio_rerio",
+            "m_path_loc":"\zebrafish\mRNA.fasta",
+            "nc_path_loc":"\zebrafish\lncRNA.fasta"
+        }
+    ]
     conclusions = {
             "sequence_type":[],
-            "seq_size":[],
             "acc_fft":[],
             "acc_mv":[],
             "N":[],
@@ -307,10 +349,10 @@ if __name__ == "__main__":
             "cossic_model_score":[]
         }
     
-    for file in files:
-        single_specie_valuate(file, conclusion=conclusions)
+    for file in cpc2_files:
+        single_specie_valuate(cpc2_root,file, conclusion=conclusions)
         conclusions_df = pd.DataFrame.from_dict(conclusions)
-        conclusions_df.to_csv('conclusions_most_valuable_rnaseq.csv', index=True) 
+        conclusions_df.to_csv('./cpc2_results/cpc2_conclusions_most_valuable.csv', index=True) 
     #     # filenames=[
     #     #     file["m_path_loc"],
     #     #     file["nc_path_loc"]
