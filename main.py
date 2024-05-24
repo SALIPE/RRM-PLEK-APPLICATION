@@ -101,18 +101,99 @@ def normalize_sequences_to_bins(sequences:List[List[float]])->List[List[float]]:
 
     return histograms
 
+
+def cross_dataset_valuate(file_specie1:dict,
+                          file_specie2:dict,
+                          conclusion:dict):
+
+    specie:str = file["specie"]
+    conclusion["sequence_type"].append(specie)
+
+    mfile1:str = file_specie1["m_path_loc"]
+    ncfile1:str = file_specie1["nc_path_loc"]
+
+    mfile2:str = file_specie2["m_path_loc"]
+    ncfile2:str = file_specie2["nc_path_loc"]
+
+    print(f'\n{specie} - Getting FFT data...')
+    Mx1,My1,NCx1,NCy1 = prepare_dft_data(
+        m_path_loc = mfile1,
+        nc_path_loc = ncfile1,
+        specie=specie)
+    
+    Mx2,My2,NCx2,NCy2 = prepare_dft_data(
+        m_path_loc = mfile2,
+        nc_path_loc = ncfile2,
+        specie=specie)
+    
+    m_hist_bins,m_idxs1 = get_histogram_bins(sequences=Mx1, 
+                           class_name="mRNA_"+specie)
+      
+    nc_hist_bins,nc_idxs1 = get_histogram_bins(sequences=NCx1, 
+                        class_name="ncRNA_"+specie)
+    
+    m_hist_bins,m_idxs2 = get_histogram_bins(sequences=Mx2, 
+                           class_name="mRNA_"+specie)
+      
+    nc_hist_bins,nc_idxs2 = get_histogram_bins(sequences=NCx2, 
+                        class_name="ncRNA_"+specie)
+    
+    m_idxs = list(set(m_idxs1 + m_idxs2))
+    m_idxs.sort()
+
+    nc_idxs = list(set(nc_idxs1 + nc_idxs2))
+    nc_idxs.sort()
+    
+    conclusion["m_freq_peak_idxs"].append(m_idxs)
+    conclusion["nc_freq_peak_idxs"].append(nc_idxs)
+    
+    most_id_idxs = list(set(m_idxs + nc_idxs))
+    most_id_idxs.sort()
+    conclusion["N"].append(len(most_id_idxs))
+    conclusion["frequences"].append(np.array(intervals)[most_id_idxs])
+
+    norm_Mx1 = normalize_sequences_to_bins(Mx1)
+    norm_NCx1 = normalize_sequences_to_bins(NCx1)
+    X_fft=[*norm_Mx1,*norm_NCx1]
+    y_fft=[*My1,*NCy1]
+
+    norm_Mx2 = normalize_sequences_to_bins(Mx2)
+    norm_NCx2 = normalize_sequences_to_bins(NCx2)
+    X_test = [*norm_Mx2,*norm_NCx2]
+    y_test = [*My2,*NCy2]
+
+    print(f'\n{specie} - Valuating DFT model...')
+    clf = model.simple_train(X=X_fft,Y=y_fft)
+    conclusion["dft_model_scores"].append(None)
+    conclusion["acc_fft"].append(model.confusion_matrix_scorer(clf, X_test, y_test))
+
+    '''
+    Training looking only for the most valuables frequences,
+    extracting the ffts sequences values by index.
+
+    '''
+    print(f'\n{specie} - Valuating most valuables indexes...')
+    X_most_valuable_train=[np.array(fft)[most_id_idxs] for fft in X_fft]
+    X_most_valuable_test=[np.array(fft)[most_id_idxs] for fft in X_test]
+
+    clf = model.simple_train(X=X_most_valuable_train,Y=y_fft)
+    conclusion["cossic_model_score"].append(None)
+    conclusion["acc_mv"].append(model.confusion_matrix_scorer(clf, X_most_valuable_test, y_test))
+
     
 def single_specie_valuate(root:str,
                           file:dict, 
                           conclusion:dict):
     specie:str = file["specie"]
+    mfile:str = root+file["m_path_loc"],
+    ncfile:str = root+file["nc_path_loc"],
 
     conclusion["sequence_type"].append(specie)
 
     print(f'\n{specie} - Getting FFT data...')
     Mx,My,NCx,NCy = prepare_dft_data(
-        m_path_loc=root+file["m_path_loc"],
-        nc_path_loc=root+file["nc_path_loc"],
+        m_path_loc = mfile,
+        nc_path_loc = ncfile,
         specie=specie)
         
     m_hist_bins,m_idxs = get_histogram_bins(sequences=Mx, 
@@ -141,7 +222,6 @@ def single_specie_valuate(root:str,
     for classify by dft.
 
     '''
-
     print(f'\n{specie} - Valuating DFT model...')
     
     X_train, X_test, y_train, y_test = train_test_split(
@@ -337,6 +417,32 @@ if __name__ == "__main__":
             "nc_path_loc":"\zebrafish\lncRNA.fasta"
         }
     ]
+   
+    inner_files=[
+          {
+            "specie":"Danio_rerio",
+            "plek_files":{
+                "m_path_loc":plek_root + "\Danio_rerio\sequencia2.txt",
+                "nc_path_loc":plek_root + "\Danio_rerio\sequencia1.txt" 
+            },
+            "cpc2_files":{
+                "m_path_loc":cpc2_root + "\zebrafish\mRNA.fasta",
+                "nc_path_loc":cpc2_root + "\zebrafish\lncRNA.fasta"
+            }
+            
+        },
+        {
+            "specie":"Mus_musculus",
+             "plek_files":{
+                "m_path_loc":plek_root + "\Mus_musculus\sequencia2.txt",
+                "nc_path_loc":plek_root + "\Mus_musculus\sequencia1.txt"
+            },
+            "cpc2_files":{
+                "m_path_loc":cpc2_root + "\mouse\mRNA.fasta",
+                "nc_path_loc":cpc2_root + "\mouse\lncRNA.fasta"
+            }
+        }
+    ]
     conclusions = {
             "sequence_type":[],
             "acc_fft":[],
@@ -349,10 +455,17 @@ if __name__ == "__main__":
             "cossic_model_score":[]
         }
     
-    for file in cpc2_files:
-        single_specie_valuate(cpc2_root,file, conclusion=conclusions)
+    for file in inner_files:
+        cross_dataset_valuate(file_specie2=file["plek_files"],
+                          file_specie1 =file["cpc2_files"] ,
+                          conclusion= conclusions)
         conclusions_df = pd.DataFrame.from_dict(conclusions)
-        conclusions_df.to_csv('./cpc2_results/cpc2_conclusions_most_valuable.csv', index=True) 
+        conclusions_df.to_csv('crossdataset_conclusions_most_valuable2.csv', index=True) 
+    
+    # for file in cpc2_files:
+    #     single_specie_valuate(cpc2_root,file, conclusion=conclusions)
+    #     conclusions_df = pd.DataFrame.from_dict(conclusions)
+    #     conclusions_df.to_csv('./cpc2_results/cpc2_conclusions_most_valuable.csv', index=True) 
     #     # filenames=[
     #     #     file["m_path_loc"],
     #     #     file["nc_path_loc"]

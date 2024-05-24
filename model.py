@@ -30,6 +30,11 @@ def cross_val_model(X,
 
     return clf, scores
 
+def simple_train(X,  Y:List[str]):
+    clf = tree.DecisionTreeClassifier()
+    clf.fit(X,Y)
+    return clf
+
 def save_model(model, filename:str):
     plt.figure(figsize=(300,100), dpi=80)
     class_names = model.classes_

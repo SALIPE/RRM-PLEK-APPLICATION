@@ -1,0 +1,35 @@
+,sequence_type,acc_fft,acc_mv,N,m_freq_peak_idxs,nc_freq_peak_idxs,frequences,dft_model_scores,cossic_model_score
+0,Danio_rerio,"                   precision    recall  f1-score   support
+
+ mRNA_Danio_rerio       0.93      0.66      0.77       419
+ncRNA_Danio_rerio       0.74      0.95      0.83       419
+
+         accuracy                           0.81       838
+        macro avg       0.83      0.81      0.80       838
+     weighted avg       0.83      0.81      0.80       838
+","                   precision    recall  f1-score   support
+
+ mRNA_Danio_rerio       0.92      0.59      0.72       419
+ncRNA_Danio_rerio       0.70      0.95      0.80       419
+
+         accuracy                           0.77       838
+        macro avg       0.81      0.77      0.76       838
+     weighted avg       0.81      0.77      0.76       838
+",4,"[1, 2]","[1, 2, 255, 510]",[0.00097847 0.00195695 0.24951076 0.49902153],,
+1,Mus_musculus,"                    precision    recall  f1-score   support
+
+ mRNA_Mus_musculus       0.92      0.52      0.66      8032
+ncRNA_Mus_musculus       0.67      0.96      0.79      8032
+
+          accuracy                           0.74     16064
+         macro avg       0.79      0.74      0.73     16064
+      weighted avg       0.79      0.74      0.73     16064
+","                    precision    recall  f1-score   support
+
+ mRNA_Mus_musculus       0.91      0.53      0.67      8032
+ncRNA_Mus_musculus       0.67      0.95      0.78      8032
+
+          accuracy                           0.74     16064
+         macro avg       0.79      0.74      0.73     16064
+      weighted avg       0.79      0.74      0.73     16064
+",2,"[0, 1]",[1],[0.         0.00097847],,
