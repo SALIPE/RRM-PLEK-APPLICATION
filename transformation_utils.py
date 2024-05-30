@@ -92,9 +92,9 @@ def prepare_data(m_path_loc:str,
     # Balance sequences proportions
     Mx_size = len(Mx)
     NCx_size = len(NCx)
-    if(not to_dft):
-        print(f'{Mx_size} original size -> mRNA_{specie}')
-        print(f'{NCx_size} original size -> ncRNA_{specie}')
+    # if(not to_dft):
+    print(f'{Mx_size} original size -> mRNA_{specie}')
+    print(f'{NCx_size} original size -> ncRNA_{specie}')
 
     if(Mx_size > NCx_size):
         Mx = Mx[0:NCx_size]

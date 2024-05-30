@@ -2,31 +2,31 @@
 0,Danio_rerio,"                   precision    recall  f1-score   support
 
  mRNA_Danio_rerio       0.71      0.82      0.76      1163
-ncRNA_Danio_rerio       0.79      0.66      0.72      1163
+ncRNA_Danio_rerio       0.79      0.67      0.72      1163
 
          accuracy                           0.74      2326
         macro avg       0.75      0.74      0.74      2326
      weighted avg       0.75      0.74      0.74      2326
 ","                   precision    recall  f1-score   support
 
- mRNA_Danio_rerio       0.70      0.86      0.77      1163
-ncRNA_Danio_rerio       0.82      0.63      0.71      1163
+ mRNA_Danio_rerio       0.70      0.85      0.77      1163
+ncRNA_Danio_rerio       0.81      0.63      0.71      1163
 
-         accuracy                           0.75      2326
-        macro avg       0.76      0.75      0.74      2326
-     weighted avg       0.76      0.75      0.74      2326
+         accuracy                           0.74      2326
+        macro avg       0.75      0.74      0.74      2326
+     weighted avg       0.75      0.74      0.74      2326
 ",4,"[1, 2]","[1, 2, 255, 510]",[0.00097847 0.00195695 0.24951076 0.49902153],,
 1,Mus_musculus,"                    precision    recall  f1-score   support
 
- mRNA_Mus_musculus       0.65      0.78      0.71      6460
-ncRNA_Mus_musculus       0.72      0.57      0.64      6460
+ mRNA_Mus_musculus       0.65      0.77      0.70      6460
+ncRNA_Mus_musculus       0.71      0.58      0.64      6460
 
-          accuracy                           0.68     12920
-         macro avg       0.68      0.68      0.67     12920
-      weighted avg       0.68      0.68      0.67     12920
+          accuracy                           0.67     12920
+         macro avg       0.68      0.67      0.67     12920
+      weighted avg       0.68      0.67      0.67     12920
 ","                    precision    recall  f1-score   support
 
- mRNA_Mus_musculus       0.66      0.80      0.72      6460
+ mRNA_Mus_musculus       0.66      0.79      0.72      6460
 ncRNA_Mus_musculus       0.74      0.59      0.66      6460
 
           accuracy                           0.69     12920

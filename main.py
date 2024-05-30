@@ -1,12 +1,15 @@
 import bisect
+import os
 from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from Bio import SeqIO
 from scipy.fft import rfft, rfftfreq
 from sklearn.model_selection import train_test_split
 
+import clean_sequences as clseq
 import io_utils as iou
 import model
 import transformation_utils as tfu
@@ -181,12 +184,11 @@ def cross_dataset_valuate(file_specie1:dict,
     conclusion["acc_mv"].append(model.confusion_matrix_scorer(clf, X_most_valuable_test, y_test))
 
     
-def single_specie_valuate(root:str,
-                          file:dict, 
+def single_specie_valuate(file:dict, 
                           conclusion:dict):
     specie:str = file["specie"]
-    mfile:str = root+file["m_path_loc"],
-    ncfile:str = root+file["nc_path_loc"],
+    mfile:str = file["m_path_loc"]
+    ncfile:str = file["nc_path_loc"]
 
     conclusion["sequence_type"].append(specie)
 
@@ -323,98 +325,150 @@ def toymodel():
     #         print(seq.seq)
 
 if __name__ == "__main__":
+    
     # toymodel()
-    plek_root = '..\datasets\dataset-plek'
-    cpc2_root = '..\datasets\CPC2'
+    cpc2_root = os.path.join('..', 'datasets', 'CPC2')
+    plek_root = os.path.join('..', 'datasets', 'dataset-plek')
 
     plek_files =[
         {
             "specie":"Gorilla_gorilla",
-            "m_path_loc":"\Gorilla_gorilla\sequencia2.txt",
-            "nc_path_loc":"\Gorilla_gorilla\sequencia1.txt"
+            "fold":'Gorilla_gorilla',
+            "m_file":'sequencia2.txt',
+            "nc_file":'sequencia1.txt',
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
         {
             "specie":"Macaca_mulatta",
-            "m_path_loc":"\Macaca_mulatta\sequencia1.txt",
-            "nc_path_loc":"\Macaca_mulatta\sequencia2.txt"
+            "fold":'Macaca_mulatta',
+            "m_file":'sequencia1.txt',
+            "nc_file":'sequencia2.txt',
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
         {
             "specie":"Bos_taurus",
-            "m_path_loc":"\Bos_taurus\sequencia2.txt",
-            "nc_path_loc":"\Bos_taurus\sequencia1.txt"
+            "fold":'Bos_taurus',
+            "m_file":"sequencia2.txt",
+            "nc_file":"sequencia1.txt",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
         {
             "specie":"Danio_rerio",
-            "m_path_loc":"\Danio_rerio\sequencia2.txt",
-            "nc_path_loc":"\Danio_rerio\sequencia1.txt"
+            "fold":'Danio_rerio',
+            "m_file":"sequencia2.txt",
+            "nc_file":"sequencia1.txt",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
         {
             "specie":"Mus_musculus",
-            "m_path_loc":"\Mus_musculus\sequencia2.txt",
-            "nc_path_loc":"\Mus_musculus\sequencia1.txt"
+            "fold":'Mus_musculus',
+            "m_file":"sequencia2.txt",
+            "nc_file":"sequencia1.txt",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
         {
             "specie":"Pan_troglodytes",
-            "m_path_loc":"\Pan_troglodytes\sequencia1.txt",
-            "nc_path_loc":"\Pan_troglodytes\sequencia2.txt"
+            "fold":'Pan_troglodytes',
+            "m_file":"sequencia1.txt",
+            "nc_file":"sequencia2.txt",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
         {
             "specie":"Pongo_abelii",
-            "m_path_loc":"\Pongo_abelii\sequencia1.txt",
-            "nc_path_loc":"\Pongo_abelii\sequencia2.txt"
+            "fold":'Pongo_abelii',
+            "m_file":"sequencia1.txt",
+            "nc_file":"sequencia2.txt",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
         {
             "specie":"Sus_scrofa",
-            "m_path_loc":"\Sus_scrofa\sequencia1.txt",
-            "nc_path_loc":"\Sus_scrofa\sequencia2.txt"
+            "fold":'Sus_scrofa',
+            "m_file":"sequencia1.txt",
+            "nc_file":"sequencia2.txt",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
           {
             "specie":"Xenopus_tropicalis",
-            "m_path_loc":"\Xenopus_tropicalis\sequencia2.txt",
-            "nc_path_loc":"\Xenopus_tropicalis\sequencia1.txt"
+            "fold":'Xenopus_tropicalis',
+            "m_file":"sequencia2.txt",
+            "nc_file":"sequencia1.txt",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         }
     ]
 
     cpc2_files = [
         {
             "specie":"Arabidopsis_thaliana",
-            "m_path_loc":"\\arabidopsis\mRNA.fasta",
-            "nc_path_loc":"\\arabidopsis\lncRNA.fasta"
+            "fold":'arabidopsis',
+            "m_file":"mRNA.fasta",
+            "nc_file":"lncRNA.fasta",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
          {
             "specie":"Drosophila_melanogaster",
-            "m_path_loc":"\\fruitfly\mRNA.fasta",
-            "nc_path_loc":"\\fruitfly\lncRNA.fasta"
+            "fold":'fruitfly',
+            "m_file":"mRNA.fasta",
+            "nc_file":"lncRNA.fasta",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
          {
             "specie":"Homo_sapiens",
-            "m_path_loc":"\human\mRNA.fasta",
-            "nc_path_loc":"\human\lncRNA.fasta"
+            "fold":'human',
+            "m_file":"mRNA.fasta",
+            "nc_file":"lncRNA.fasta",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
          {
             "specie":"Mus_musculus",
-            "m_path_loc":"\mouse\mRNA.fasta",
-            "nc_path_loc":"\mouse\lncRNA.fasta"
+            "fold":'mouse',
+            "m_file":"mRNA.fasta",
+            "nc_file":"lncRNA.fasta",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
-         {
-            "specie":"Rattus_norvegicus",
-            "m_path_loc":"\\rat\mRNA.fasta",
-            "nc_path_loc":"\\rat\lncRNA.fasta"
-        },
-         {
-            "specie":"Oryza_sativa_japonica",
-            "m_path_loc":"\\rice\mRNA.fasta",
-            "nc_path_loc":"\\rice\lncRNA.fasta"
-        },
+        #  {
+        #     "specie":"Rattus_norvegicus",
+        #     "fold":'rat',
+        #     "m_file":"mRNA.fasta",
+        #     "nc_file":"lncRNA.fasta",
+        #     "m_path_loc":'mRNA_clean',
+        #     "nc_path_loc":'ncRNA_clean'
+        # },
+        #  {
+        #     "specie":"Oryza_sativa_japonica",
+        #     "fold":'rice',
+        #     "m_file":"mRNA.fasta",
+        #     "nc_file":"lncRNA.fasta",
+        #     "m_path_loc":'mRNA_clean',
+        #     "nc_path_loc":'ncRNA_clean'
+        # },
          {
             "specie":"Caenorhabditis_elegans",
-            "m_path_loc":"\worm\mRNA.fasta",
-            "nc_path_loc":"\worm\lncRNA.fasta"
+            "fold":'worm',
+            "m_file":"mRNA.fasta",
+            "nc_file":"lncRNA.fasta",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         },
          {
             "specie":"Danio_rerio",
-            "m_path_loc":"\zebrafish\mRNA.fasta",
-            "nc_path_loc":"\zebrafish\lncRNA.fasta"
+            "fold":'zebrafish',
+            "m_file":"mRNA.fasta",
+            "nc_file":"lncRNA.fasta",
+            "m_path_loc":'mRNA_clean',
+            "nc_path_loc":'ncRNA_clean'
         }
     ]
    
@@ -422,24 +476,24 @@ if __name__ == "__main__":
           {
             "specie":"Danio_rerio",
             "plek_files":{
-                "m_path_loc":plek_root + "\Danio_rerio\sequencia2.txt",
-                "nc_path_loc":plek_root + "\Danio_rerio\sequencia1.txt" 
+                "m_path_loc":os.path.join(plek_root,'Danio_rerio','sequencia2.txt'),
+                "nc_path_loc":os.path.join(plek_root,'Danio_rerio','sequencia1.txt')
             },
             "cpc2_files":{
-                "m_path_loc":cpc2_root + "\zebrafish\mRNA.fasta",
-                "nc_path_loc":cpc2_root + "\zebrafish\lncRNA.fasta"
+                "m_path_loc":os.path.join(cpc2_root,'zebrafish','mRNA.fasta'),
+                "nc_path_loc":os.path.join(cpc2_root,'zebrafish','lncRNA.fasta')
             }
             
         },
         {
             "specie":"Mus_musculus",
              "plek_files":{
-                "m_path_loc":plek_root + "\Mus_musculus\sequencia2.txt",
-                "nc_path_loc":plek_root + "\Mus_musculus\sequencia1.txt"
+                "m_path_loc":os.path.join(plek_root,'Mus_musculus','sequencia2.txt'),
+                "nc_path_loc":os.path.join(plek_root,'Mus_musculus','sequencia1.txt')
             },
             "cpc2_files":{
-                "m_path_loc":cpc2_root + "\mouse\mRNA.fasta",
-                "nc_path_loc":cpc2_root + "\mouse\lncRNA.fasta"
+                 "m_path_loc":os.path.join(cpc2_root,'mouse','mRNA.fasta'),
+                "nc_path_loc":os.path.join(cpc2_root,'mouse','lncRNA.fasta')
             }
         }
     ]
@@ -455,47 +509,51 @@ if __name__ == "__main__":
             "cossic_model_score":[]
         }
     
-    for file in inner_files:
-        cross_dataset_valuate(file_specie2=file["plek_files"],
-                          file_specie1 =file["cpc2_files"] ,
-                          conclusion= conclusions)
-        conclusions_df = pd.DataFrame.from_dict(conclusions)
-        conclusions_df.to_csv('crossdataset_conclusions_most_valuable2.csv', index=True) 
-    
-    # for file in cpc2_files:
-    #     single_specie_valuate(cpc2_root,file, conclusion=conclusions)
+    # for file in inner_files:
+    #     cross_dataset_valuate(file_specie2=file["plek_files"],
+    #                       file_specie1=file["cpc2_files"] ,
+    #                       conclusion= conclusions)
     #     conclusions_df = pd.DataFrame.from_dict(conclusions)
-    #     conclusions_df.to_csv('./cpc2_results/cpc2_conclusions_most_valuable.csv', index=True) 
-    #     # filenames=[
-    #     #     file["m_path_loc"],
-    #     #     file["nc_path_loc"]
-    #     # ]
+    #     conclusions_df.to_csv('crossdataset_conclusions_most_valuable2.csv', index=True) 
+    
+    for file in cpc2_files:
+        fold = file["fold"]
+        clseq.clean_sequences(class_name="ncRNA",
+                          root = os.path.join(cpc2_root, fold),
+                          filename= file["nc_file"])
+        clseq.clean_sequences(class_name="mRNA",
+                          root = os.path.join(cpc2_root, fold),
+                          filename= file["m_file"])
+   
+    #     file["m_path_loc"] = os.path.join(plek_root, fold, file["m_path_loc"])
+    #     file["nc_path_loc"] = os.path.join(plek_root, fold, file["nc_path_loc"])
+    #     single_specie_valuate(file, conclusion=conclusions)
+        # conclusions_df = pd.DataFrame.from_dict(conclusions)
+        # conclusions_df.to_csv('./cpc2_results/cpc2_conclusions_most_valuable2.csv', index=True) 
+
+        # print(f'\n {file["specie"]}')
+        # print("mRNA values:")
+        # seqs_len = []
+        # with open(plek_root+file["m_path_loc"]) as handle:
+        #     for record in SeqIO.parse(handle, "fasta"):
+        #         seqs_len.append(len(record.seq))
         
-    #     # print(f'\n {file["specie"]}')
-    #     # print("mRNA values:")
-    #     # seqs_len = []
-    #     # with open( file["m_path_loc"]) as handle:
-    #     #     for record in SeqIO.parse(handle, "fasta"):
-    #     #         seqs_len.append(len(record.seq))
-                
-    #     # seqs_mean = np.mean(seqs_len)
-    #     # seqs_sd = np.std(seqs_len)
-    #     # print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
 
-    #     # print("ncRNA values:")
-    #     # seqs_len = []
-    #     # with open( file["nc_path_loc"]) as handle:
-    #     #     for record in SeqIO.parse(handle, "fasta"):
-    #     #         seqs_len.append(len(record.seq))
-                
-    #     # seqs_mean = np.mean(seqs_len)
-    #     # seqs_sd = np.std(seqs_len)
-    #     # print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
+        # seqs_mean = np.mean(seqs_len)
+        # seqs_sd = np.std(seqs_len)
+        # print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
 
-          
-    #         # variation = seqs_sd/seqs_mean
-    #         # seqs_min = min(seqs_len)
-    #         # seqs_max = max(seqs_len)
+        # print("ncRNA values:")
+        # seqs_len = []
+        # with open(plek_root+ file["nc_path_loc"]) as handle:
+        #     for record in SeqIO.parse(handle, "fasta"):
+        #         seqs_len.append(len(record.seq))
+                
+        # seqs_mean = np.mean(seqs_len)
+        # seqs_sd = np.std(seqs_len)
+        # print(f'mean: {seqs_mean} +- dev: {seqs_sd}')
+
+        
     
     
   
