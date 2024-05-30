@@ -472,28 +472,54 @@ if __name__ == "__main__":
         }
     ]
    
-    inner_files=[
+    cpc2_train_inner_files=[
           {
             "specie":"Danio_rerio",
             "plek_files":{
-                "m_path_loc":os.path.join(plek_root,'Danio_rerio','sequencia2.txt'),
-                "nc_path_loc":os.path.join(plek_root,'Danio_rerio','sequencia1.txt')
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','m_filtered_plek.fasta'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','nc_filtered_plek.fasta'),
             },
             "cpc2_files":{
-                "m_path_loc":os.path.join(cpc2_root,'zebrafish','mRNA.fasta'),
-                "nc_path_loc":os.path.join(cpc2_root,'zebrafish','lncRNA.fasta')
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','mRNA_cleaned_cpc2'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','ncRNA_cleaned_cpc2'),
             }
             
         },
         {
             "specie":"Mus_musculus",
              "plek_files":{
-                "m_path_loc":os.path.join(plek_root,'Mus_musculus','sequencia2.txt'),
-                "nc_path_loc":os.path.join(plek_root,'Mus_musculus','sequencia1.txt')
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','m_filtered_plek.fasta'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','nc_filtered_plek.fasta'),
             },
             "cpc2_files":{
-                 "m_path_loc":os.path.join(cpc2_root,'mouse','mRNA.fasta'),
-                "nc_path_loc":os.path.join(cpc2_root,'mouse','lncRNA.fasta')
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','mRNA_cleaned_cpc2'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','ncRNA_cleaned_cpc2'),
+            }
+        }
+    ]
+
+    plek_train_inner_files=[
+          {
+            "specie":"Danio_rerio",
+            "plek_files":{
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','mRNA_cleaned_plek'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','ncRNA_cleaned_plek'),
+            },
+            "cpc2_files":{
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','m_filtered_cpc2.fasta'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Danio_rerio','nc_filtered_cpc2.fasta'),
+            }
+            
+        },
+        {
+            "specie":"Mus_musculus",
+             "plek_files":{
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','mRNA_cleaned_plek'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','ncRNA_cleaned_plek'),
+            },
+            "cpc2_files":{
+                "m_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','m_filtered_cpc2.fasta'),
+                "nc_path_loc":os.path.join('..', 'datasets', 'inner_organisms','Mus_musculus','nc_filtered_cpc2.fasta'),
             }
         }
     ]
@@ -509,21 +535,40 @@ if __name__ == "__main__":
             "cossic_model_score":[]
         }
     
-    # for file in inner_files:
-    #     cross_dataset_valuate(file_specie2=file["plek_files"],
-    #                       file_specie1=file["cpc2_files"] ,
-    #                       conclusion= conclusions)
-    #     conclusions_df = pd.DataFrame.from_dict(conclusions)
-    #     conclusions_df.to_csv('crossdataset_conclusions_most_valuable2.csv', index=True) 
+    for file in plek_train_inner_files:
+        cross_dataset_valuate(file_specie1=file["plek_files"],
+                          file_specie2=file["cpc2_files"] ,
+                          conclusion= conclusions)
+        conclusions_df = pd.DataFrame.from_dict(conclusions)
+        conclusions_df.to_csv('crossdataset_conclusions_most_valuable_plektrain.csv', index=True) 
+
+    conclusions = {
+            "sequence_type":[],
+            "acc_fft":[],
+            "acc_mv":[],
+            "N":[],
+            "m_freq_peak_idxs":[],
+            "nc_freq_peak_idxs":[],
+            "frequences":[],
+            "dft_model_scores":[],
+            "cossic_model_score":[]
+        }
+
+    for file in cpc2_train_inner_files:
+        cross_dataset_valuate(file_specie1=file["cpc2_files"],
+                          file_specie2=file["plek_files"] ,
+                          conclusion= conclusions)
+        conclusions_df = pd.DataFrame.from_dict(conclusions)
+        conclusions_df.to_csv('crossdataset_conclusions_most_valuable_cpc2train.csv', index=True)
     
-    for file in cpc2_files:
-        fold = file["fold"]
-        clseq.clean_sequences(class_name="ncRNA",
-                          root = os.path.join(cpc2_root, fold),
-                          filename= file["nc_file"])
-        clseq.clean_sequences(class_name="mRNA",
-                          root = os.path.join(cpc2_root, fold),
-                          filename= file["m_file"])
+    # for file in cpc2_files:
+    #     fold = file["fold"]
+    #     clseq.clean_sequences(class_name="ncRNA",
+    #                       root = os.path.join(cpc2_root, fold),
+    #                       filename= file["nc_file"])
+    #     clseq.clean_sequences(class_name="mRNA",
+    #                       root = os.path.join(cpc2_root, fold),
+    #                       filename= file["m_file"])
    
     #     file["m_path_loc"] = os.path.join(plek_root, fold, file["m_path_loc"])
     #     file["nc_path_loc"] = os.path.join(plek_root, fold, file["nc_path_loc"])
