@@ -49,9 +49,9 @@ eiipArray1::Array{Float64} = readSequence(seq1)
 eiipArray2::Array{Float64} = readSequence(seq2)
 
 convres = conv(eiipArray1, eiipArray2)
-dftv = fft(convres)
-
-dftfreq = fftfreq(length(convres))
+dftv = rfft(convres)
+deleteat!(dftv, 1)
+dftfreq = rfftfreq(length(convres) - 1)
 
 
 
