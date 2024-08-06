@@ -53,7 +53,5 @@ dftv = rfft(convres)
 deleteat!(dftv, 1)
 dftfreq = rfftfreq(length(convres) - 1)
 
-
-
 plt = plot(dftfreq, abs.(dftv), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
-savefig(plt, "myplot.pdf")
+# savefig(plt, "myplot.pdf")
