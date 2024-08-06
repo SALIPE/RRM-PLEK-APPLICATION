@@ -1,4 +1,10 @@
-## Funcoes para obtencao do EIIP
+import Pkg
+Pkg.activate(".")
+using DSP
+using Plots
+using AbstractFFTs
+
+
 EIIP_NUCLEOTIDE = Dict{String,Float64}([
     ("A", 0.1260),
     ("G", 0.0806),
@@ -39,5 +45,15 @@ function readSequence(seqpar::AbstractString)::Array{Float64}
     return arrSeq
 end
 
-eiipArray::Array{Float64} = readSequence(seq1)
-println(eiipArray)
+eiipArray1::Array{Float64} = readSequence(seq1)
+eiipArray2::Array{Float64} = readSequence(seq2)
+
+convres = conv(eiipArray1, eiipArray2)
+dftv = fft(convres)
+
+dftfreq = fftfreq(length(convres))
+
+
+
+plt = plot(dftfreq, abs.(dftv), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
+savefig(plt, "myplot.pdf")
