@@ -1,57 +1,53 @@
-import Pkg
-Pkg.activate(".")
-using DSP
-using Plots
-using AbstractFFTs
+include("dataIO.jl")
 
-
-EIIP_NUCLEOTIDE = Dict{String,Float64}([
-    ("A", 0.1260),
-    ("G", 0.0806),
-    ("T", 0.1335),
-    ("C", 0.1340)])
-
-EIIP_AMINOACID = Dict{Char,Float64}([
-    ('L', 0.0000),
-    ('I', 0.0000),
-    ('N', 0.0036),
-    ('G', 0.0050),
-    ('V', 0.0057),
-    ('E', 0.0058),
-    ('P', 0.0198),
-    ('H', 0.0242),
-    ('K', 0.0371),
-    ('A', 0.0373),
-    ('Y', 0.0516),
-    ('W', 0.0548),
-    ('Q', 0.0761),
-    ('M', 0.0823),
-    ('S', 0.0829),
-    ('C', 0.0829),
-    ('T', 0.0941),
-    ('F', 0.0946),
-    ('R', 0.0959),
-    ('D', 0.1263)])
+using DSP, Plots, AbstractFFTs
+using .DataIO
 
 seq1::String = "PALPEDGGSGAFPPGHFKDPKRLYCKNGGFFLRIHPDGRVDGVREKSDPHIKLQLQAEERGWSIKGVCANRYLAMKEDGRLLASKCVTDECFFFERLESNNYNTYRSRKYSSWYVALKRTGQYKLGPKTGPGQKAILFLPMSAKS"
 seq2::String = "FNLPLGNYKKPKLLYCSNGGYFLRILPDGTVDGTKDRSDQHIQLQLCAESIGEVYIKSTETGQFLAMDTDGLLYGSQTPNEECLFLERLEENHYNTYISKKHAEKHWFVGLKKNGRSKLGPRTHFGQKAILFLPLPVSSD"
 
+filePath::String = "/home/salipe/Documents/GitHub/datasets/dron_car_2737_selected_final.fa"
 
-function readSequence(seqpar::AbstractString)::Array{Float64}
-    arrSeq = Float64[]
-    for key in seqpar
-        push!(arrSeq, EIIP_AMINOACID[key])
+
+sequences = DataIO.getSequencesFromFastaFile(filePath)
+numericalSeries = DataIO.sequenceList2NumericalSeries(sequences)
+
+
+function longest_sequence_index(
+    sequences::Array{Array{Float64}}
+)::Int
+    if isempty(sequences)
+        error("Input array is empty.")
     end
-    return arrSeq
+
+    longest_index = 1
+    longest_length = length(sequences[1])
+
+    for i in 2:length(sequences)
+        if length(sequences[i]) > longest_length
+            longest_index = i
+            longest_length = length(sequences[i])
+        end
+    end
+
+    return longest_index
 end
 
-eiipArray1::Array{Float64} = readSequence(seq1)
-eiipArray2::Array{Float64} = readSequence(seq2)
+# longSeqIdx::Int = longest_sequence_index(numericalSeries)
+longSeqIdx::Int = 1
+global convres::AbstractArray = numericalSeries[longSeqIdx]
 
-convres = conv(eiipArray1, eiipArray2)
+# for idx in 1:10
+#     if (idx != longSeqIdx)
+#         global convres
+#         convres = conv(numericalSeries[idx], convres)
+#     end
+
+# end
+
 dftv = rfft(convres)
-deleteat!(dftv, 1)
-dftfreq = rfftfreq(length(convres) - 1)
-
-plt = plot(dftfreq, abs.(dftv), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
-# savefig(plt, "myplot.pdf")
+# deleteat!(dftv, 1:3)
+# less::Int8 = length(convres) % 2 == 0 ? 4 : 5
+# dftfreq = rfftfreq(length(convres) - 6)
+plt = plot(abs.(dftv[200:500]), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
+savefig(plt, "myplot.png")
