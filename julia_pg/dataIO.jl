@@ -35,16 +35,27 @@ function getSequencesFromFastaFile(
     filePath::String
 )::Array{FASTX.FASTA.Record}
     sequences::Array{FASTX.FASTA.Record} = []
-    FASTAReader(open(filePath)) do reader
-        for record in reader
-            push!(sequences, record)
-            # println(identifier(record))
-            # println(sequence(record))
-            # println(description(record))
+    for record in open(FASTAReader, filePath)
+        push!(sequences, record)
+        # push!(sequences, codeunits(sequence(record)))
+        # println(identifier(record))
+        # println(sequence(record))
+        # println(description(record))
+    end
+    return sequences
+end
+
+function getFirstLongestSequenceIndex(
+    sequences::Array{FASTX.FASTA.Record}
+)::Int
+    seqIndex::Int = 1
+    sequenceLen::Int = seqsize(sequences[seqIndex])
+    for idx in 2:length(sequences)
+        if (seqsize(sequences[idx]) > sequenceLen)
+            seqIndex = idx
         end
     end
-
-    return sequences
+    return seqIndex
 end
 
 function sequence2NumericalSerie(
@@ -54,6 +65,8 @@ function sequence2NumericalSerie(
     for key in sequence(seqpar)
         if (key in keys(EIIP_NUCLEOTIDE))
             push!(arrSeq, EIIP_NUCLEOTIDE[key])
+        else
+            push!(arrSeq, zero(Float64))
         end
     end
     return arrSeq

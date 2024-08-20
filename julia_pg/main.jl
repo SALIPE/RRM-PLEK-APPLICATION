@@ -1,53 +1,36 @@
 include("dataIO.jl")
 
-using DSP, Plots, AbstractFFTs
+using DSP, Plots, AbstractFFTs, FASTX
 using .DataIO
 
 seq1::String = "PALPEDGGSGAFPPGHFKDPKRLYCKNGGFFLRIHPDGRVDGVREKSDPHIKLQLQAEERGWSIKGVCANRYLAMKEDGRLLASKCVTDECFFFERLESNNYNTYRSRKYSSWYVALKRTGQYKLGPKTGPGQKAILFLPMSAKS"
 seq2::String = "FNLPLGNYKKPKLLYCSNGGYFLRILPDGTVDGTKDRSDQHIQLQLCAESIGEVYIKSTETGQFLAMDTDGLLYGSQTPNEECLFLERLEENHYNTYISKKHAEKHWFVGLKKNGRSKLGPRTHFGQKAILFLPLPVSSD"
 
-filePath::String = "/home/salipe/Documents/GitHub/datasets/dron_car_2737_selected_final.fa"
+filePath::String = ""
 
 
-sequences = DataIO.getSequencesFromFastaFile(filePath)
-numericalSeries = DataIO.sequenceList2NumericalSeries(sequences)
+genomes = DataIO.getSequencesFromFastaFile(filePath)
 
-
-function longest_sequence_index(
-    sequences::Array{Array{Float64}}
-)::Int
-    if isempty(sequences)
-        error("Input array is empty.")
-    end
-
-    longest_index = 1
-    longest_length = length(sequences[1])
-
-    for i in 2:length(sequences)
-        if length(sequences[i]) > longest_length
-            longest_index = i
-            longest_length = length(sequences[i])
+let
+    next = iterate(genomes)
+    convsig = nothing
+    while next !== nothing
+        (i, state) = next
+        # body
+        if isnothing(convsig)
+            convsig = DataIO.sequence2NumericalSerie(i)
+        else
+            convsig = conv(convsig, DataIO.sequence2NumericalSerie(i))
         end
+        next = nothing
+        # next = iterate(genomes, state)
     end
+    dftv = rfft(convsig)
 
-    return longest_index
+    # seqLen = length(convsig)
+    # less::Int8 = seqLen % 2 == 0 ? 1 : 2
+
+    dftfreq = rfftfreq(2000)
+    plt = plot(dftfreq, abs.(dftv[2:1002]), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
+    savefig(plt, "myplotconv.png")
 end
-
-# longSeqIdx::Int = longest_sequence_index(numericalSeries)
-longSeqIdx::Int = 1
-global convres::AbstractArray = numericalSeries[longSeqIdx]
-
-# for idx in 1:10
-#     if (idx != longSeqIdx)
-#         global convres
-#         convres = conv(numericalSeries[idx], convres)
-#     end
-
-# end
-
-dftv = rfft(convres)
-# deleteat!(dftv, 1:3)
-# less::Int8 = length(convres) % 2 == 0 ? 4 : 5
-# dftfreq = rfftfreq(length(convres) - 6)
-plt = plot(abs.(dftv[200:500]), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
-savefig(plt, "myplot.png")
