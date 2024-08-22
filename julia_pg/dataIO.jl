@@ -45,6 +45,7 @@ function getSequencesFromFastaFile(
     return sequences
 end
 
+
 function getFirstLongestSequenceIndex(
     sequences::Array{FASTX.FASTA.Record}
 )::Int
@@ -58,11 +59,27 @@ function getFirstLongestSequenceIndex(
     return seqIndex
 end
 
+function getShortestLength(
+    filePath::String
+)::Int
+    sequenceLen::Int = zero(Int)
+    for record in open(FASTAReader, filePath)
+        if (iszero(sequenceLen))
+            sequenceLen = seqsize(record)
+        elseif (seqsize(record) < sequenceLen)
+            sequenceLen = seqsize(record)
+        end
+
+    end
+    return sequenceLen
+end
+
 function sequence2NumericalSerie(
-    seqpar::FASTX.FASTA.Record
-)::Array{Float64}
+    seqpar::FASTX.FASTA.Record,
+    lim::Int
+)::Vector{Float64}
     arrSeq = Float64[]
-    for key in sequence(seqpar)
+    for key in sequence(seqpar)[1:lim]
         if (key in keys(EIIP_NUCLEOTIDE))
             push!(arrSeq, EIIP_NUCLEOTIDE[key])
         else
@@ -72,17 +89,19 @@ function sequence2NumericalSerie(
     return arrSeq
 end
 
-function sequenceList2NumericalSeries(
-    seqlist::Array{FASTX.FASTA.Record}
-)::Array{Array{Float64}}
-    series::Array{Array{Float64}} = []
-    for record in seqlist
-        seq = sequence2NumericalSerie(record)
-        if (!isempty(seq))
-            push!(series, seq)
-        end
+function sequence2NumericalSerie(
+    seqpar::AbstractString
+)::Vector{Float64}
+
+    dict = keys(EIIP_NUCLEOTIDE)
+    arrSeq = Float64[]
+    for c in eachindex(seqpar)
+        key = seqpar[c]
+        keyin = key ∈ dict
+        push!(arrSeq, keyin ? EIIP_NUCLEOTIDE[key] : zero(Float64))
     end
-    return series
+    return arrSeq
 end
+
 
 end

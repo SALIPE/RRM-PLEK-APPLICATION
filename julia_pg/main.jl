@@ -1,36 +1,74 @@
 include("dataIO.jl")
 
-using DSP, Plots, AbstractFFTs, FASTX
+using DSP, Plots, AbstractFFTs, FASTX, LinearAlgebra, LoopVectorization, BenchmarkTools
 using .DataIO
 
-seq1::String = "PALPEDGGSGAFPPGHFKDPKRLYCKNGGFFLRIHPDGRVDGVREKSDPHIKLQLQAEERGWSIKGVCANRYLAMKEDGRLLASKCVTDECFFFERLESNNYNTYRSRKYSSWYVALKRTGQYKLGPKTGPGQKAILFLPMSAKS"
-seq2::String = "FNLPLGNYKKPKLLYCSNGGYFLRILPDGTVDGTKDRSDQHIQLQLCAESIGEVYIKSTETGQFLAMDTDGLLYGSQTPNEECLFLERLEENHYNTYISKKHAEKHWFVGLKKNGRSKLGPRTHFGQKAILFLPLPVSSD"
+# seq1::String = "PALPEDGGSGAFPPGHFKDPKRLYCKNGGFFLRIHPDGRVDGVREKSDPHIKLQLQAEERGWSIKGVCANRYLAMKEDGRLLASKCVTDECFFFERLESNNYNTYRSRKYSSWYVALKRTGQYKLGPKTGPGQKAILFLPMSAKS"
+# seq2::String = "FNLPLGNYKKPKLLYCSNGGYFLRILPDGTVDGTKDRSDQHIQLQLCAESIGEVYIKSTETGQFLAMDTDGLLYGSQTPNEECLFLERLEENHYNTYISKKHAEKHWFVGLKKNGRSKLGPRTHFGQKAILFLPLPVSSD"
 
-filePath::String = ""
+# function crossSpectrumMinFFT(sequences, filePath)
+#     sequenceLength::Int = DataIO.getShortestLength(filePath)
+#     next = iterate(sequences)
+#     crossEspectrum = nothing
+#     while next !== nothing
+#         (i, state) = next
 
+#         numSerie::Vector{Float64} = DataIO.sequence2NumericalSerie(i, sequenceLength - 1)
 
-genomes = DataIO.getSequencesFromFastaFile(filePath)
+#         dft = rfft(numSerie)
+#         dft = deleteat!(abs.(dft), 1)
+#         if isnothing(crossEspectrum)
+#             crossEspectrum = dft
+#         else
+#             crossEspectrum = crossEspectrum .* dft
+#         end
+#         next = iterate(sequences, state)
+#     end
+
+#     dftfreq = rfftfreq(sequenceLength - 3)
+#     plt = plot(dftfreq, crossEspectrum, xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
+#     savefig(plt, "myplotfft.png")
+# end
+function sameSizeConv!(N::Vector{T}, K::Vector{T}) where {T<:Real}
+    # Optimized for the case the kernel is in N (Shorter)
+    length(N) < length(K) && return sameSizeConv!(K, N)
+    # https://brianmcfee.net/dstbook-site/content/ch10-convtheorem/ConvolutionTheorem.html
+    for ii in eachindex(N)
+        sumVal = zero(T)
+        for kk ∈ eachindex(K)
+            oa = (ii >= kk) ? N[ii-kk+1] : zero(T) # N[ii-kk+N]
+            prev = sumVal + (K[kk] * oa)
+            (prev === Nan || prev === Inf) ? break : sumVal = prev
+        end
+        N[ii] = sumVal
+    end
+    return N
+end
+
 
 let
-    next = iterate(genomes)
+    filePath::String = "/home/salipe/Documents/GitHub/datasets/gen_dron_car.fasta"
+    sequences = open(FASTAReader, filePath)
+
     convsig = nothing
-    while next !== nothing
-        (i, state) = next
-        # body
+    for seq in sequences
+        numSeries = DataIO.sequence2NumericalSerie(sequence(seq))
         if isnothing(convsig)
-            convsig = DataIO.sequence2NumericalSerie(i)
+            convsig = numSeries
         else
-            convsig = conv(convsig, DataIO.sequence2NumericalSerie(i))
+            convsig = sameSizeConv!(convsig, numSeries)
         end
-        next = nothing
-        # next = iterate(genomes, state)
+
     end
-    dftv = rfft(convsig)
 
-    # seqLen = length(convsig)
-    # less::Int8 = seqLen % 2 == 0 ? 1 : 2
-
-    dftfreq = rfftfreq(2000)
-    plt = plot(dftfreq, abs.(dftv[2:1002]), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
-    savefig(plt, "myplotconv.png")
+    println(length(convsig))
 end
+
+
+# seqLen = length(convsig)
+# less::Int8 = seqLen % 2 == 0 ? 1 : 2
+
+# dftfreq = rfftfreq(2000)
+# plt = plot(dftfreq, abs.(dftv[1000:2000]), xlabel="Frequency (Hz)", ylabel="Magnitude", title="FFT of the Signal")
+# savefig(plt, "myplotconv2.png")
+
