@@ -46,15 +46,17 @@ function getSequencesFromFastaFile(
 end
 
 
-function getFirstLongestSequenceIndex(
-    sequences::Array{FASTX.FASTA.Record}
+function getLongestLength(
+    filePath::String
 )::Int
-    seqIndex::Int = 1
-    sequenceLen::Int = seqsize(sequences[seqIndex])
-    for idx in 2:length(sequences)
-        if (seqsize(sequences[idx]) > sequenceLen)
-            seqIndex = idx
+    sequenceLen::Int = zero(Int)
+    for record in open(FASTAReader, filePath)
+        if (iszero(sequenceLen))
+            sequenceLen = seqsize(record)
+        elseif (seqsize(record) > sequenceLen)
+            sequenceLen = seqsize(record)
         end
+
     end
     return seqIndex
 end
@@ -72,21 +74,6 @@ function getShortestLength(
 
     end
     return sequenceLen
-end
-
-function sequence2NumericalSerie(
-    seqpar::FASTX.FASTA.Record,
-    lim::Int
-)::Vector{Float64}
-    arrSeq = Float64[]
-    for key in sequence(seqpar)[1:lim]
-        if (key in keys(EIIP_NUCLEOTIDE))
-            push!(arrSeq, EIIP_NUCLEOTIDE[key])
-        else
-            push!(arrSeq, zero(Float64))
-        end
-    end
-    return arrSeq
 end
 
 function sequence2NumericalSerie(
